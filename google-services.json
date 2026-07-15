@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "563456704724",
+    "project_id": "duely-d2e9d",
+    "storage_bucket": "duely-d2e9d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:563456704724:android:2c02a30583fa5e8f0ebb41",
+        "android_client_info": {
+          "package_name": "com.financeledger.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "563456704724-spf1ll6vd8929jrnm2vteedgl9r142pp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.financeledger.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "563456704724-94avdhp06auuol8qsl9fhg29332ghcrd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAR9fLqXDqFlRmCsWdw6HL3NTsEf3Gfn4I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "563456704724-94avdhp06auuol8qsl9fhg29332ghcrd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

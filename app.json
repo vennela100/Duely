@@ -1,0 +1,77 @@
+{
+  "expo": {
+    "name": "Duely",
+    "slug": "finance-ledger",
+    "scheme": "financeledger",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#FAFAF7",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.financeledger.app",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Duely needs access to your contacts so you can quickly add customers from your address book.",
+        "NSUserNotificationsUsageDescription": "Duely sends you collection reminders."
+      }
+    },
+    "android": {
+      "package": "com.duely.ledger",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "READ_CONTACTS",
+        "SEND_SMS",
+        "VIBRATE"
+      ],
+      "blockedPermissions": [
+        "RECEIVE_SMS",
+        "SYSTEM_ALERT_WINDOW",
+        "WRITE_CONTACTS"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Duely to access your contacts to import customer details."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#18212E"
+        }
+      ],
+      "expo-sharing",
+      "@react-native-google-signin/google-signin"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "17ffe1ed-d3bd-4be5-9758-9132bcaa24d9"
+      }
+    },
+    "owner": "harsha442906"
+  }
+}

@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Each signed-in owner can read/write ONLY their own space.
+    // Covers live data, dated backups, and backup chunks under /owners/{uid}/...
+    match /owners/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Everything else is denied by default.
+  }
+}
