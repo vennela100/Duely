@@ -58,6 +58,31 @@ Built with **React Native (Expo SDK 56)** + **TypeScript**.
 | Native module | Custom Expo module for direct SIM SMS |
 | Testing | Jest (72 tests) |
 
+## Project structure
+
+```text
+Duely/
+├── app/                     # Expo Router screens and route layouts
+│   ├── (auth)/              # Login and authentication flow
+│   ├── (tabs)/              # Main tab screens
+│   └── customer/            # Customer detail, edit, and transaction routes
+├── assets/                  # App icons, splash image, and static assets
+├── components/              # Reusable UI, chart, and customer components
+│   ├── charts/
+│   ├── customer/
+│   └── ui/
+├── constants/               # Shared theme values
+├── hooks/                   # Feature hooks for customers, SMS, analytics, etc.
+├── modules/smsdirect/       # Custom Expo native module for Android SMS
+├── services/                # Auth, backup, sync, storage, SMS, and data services
+├── store/                   # Zustand state stores
+├── types/                   # Shared TypeScript types
+├── utils/                   # Formatting, dates, calculations, i18n, snapshots
+├── firestore.rules          # Firestore security rules
+├── app.json                 # Expo app configuration
+└── package.json             # Scripts and dependencies
+```
+
 ## Highlights
 
 - **Chunked cloud snapshots** — full dataset split across Firestore docs to bypass the 1 MB per-document limit, rejoined on restore (unit-tested for any size).
