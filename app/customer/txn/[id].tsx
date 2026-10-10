@@ -85,13 +85,16 @@ export default function TxnScreen() {
     setSubmitting(true);
     try {
       if (isReceived) {
-        await recordCollection({
+        const result = await recordCollection({
           customer,
           amount,
           method: 'cash',
           sendSMS: smsAvailable === true,
           date,
         });
+        if (result.smsResult?.ok === false) {
+          showToast('Collection saved, but SMS was not sent', 'error');
+        }
       } else {
         await recordGiven(user.uid, { customer, amount, date });
       }

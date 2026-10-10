@@ -20,11 +20,11 @@ interface SMSParams {
   dayNumber: number;
   totalDays: number;
   date: string;
-  lang?: Lang;
+  simSubscriptionId?: number | null;
 }
 
-// Localized labels for the payment-confirmation SMS. Numbers/dates stay numeric,
-// only the wording changes per the chosen message language.
+// Receipt labels for the supported languages. Collection receipts include
+// English and Telugu together; values remain numeric in both languages.
 const SMS_LABELS: Record<Lang, {
   greeting: string;
   received: string;
@@ -41,15 +41,22 @@ const SMS_LABELS: Record<Lang, {
 
 export const buildCollectionMessage = (p: SMSParams): string => {
   const remaining = Math.max(p.dealAmount - p.totalCollected, 0);
-  const L = SMS_LABELS[p.lang ?? 'en'] ?? SMS_LABELS.en;
+  const en = SMS_LABELS.en;
+  const te = SMS_LABELS.te;
   return (
-    `${L.greeting} ${p.customerName},\n` +
-    `${L.received}: ${formatINR(p.amountCollected)}\n` +
-    `${L.date}: ${formatDisplay(p.date)}\n` +
-    `${L.totalPaid}: ${formatINR(p.totalCollected)} ${L.of} ${formatINR(p.dealAmount)}\n` +
-    `${L.day}: ${p.dayNumber}/${p.totalDays}\n` +
-    `${L.remaining}: ${formatINR(remaining)}\n` +
-    `- Duely`
+    `ప్రియమైన ${p.customerName},\n` +
+    `${te.received}: ${formatINR(p.amountCollected)}\n` +
+    `${te.date}: ${formatDisplay(p.date)}\n` +
+    `ఇప్పటివరకు చెల్లించిన మొత్తం: ${formatINR(p.totalCollected)} / ${formatINR(p.dealAmount)}\n` +
+    `${te.day}: ${p.dayNumber}/${p.totalDays}\n` +
+    `మిగిలిన మొత్తం: ${formatINR(remaining)}\n\n` +
+    `${en.greeting} ${p.customerName},\n` +
+    `${en.received}: ${formatINR(p.amountCollected)}\n` +
+    `${en.date}: ${formatDisplay(p.date)}\n` +
+    `${en.totalPaid}: ${formatINR(p.totalCollected)} ${en.of} ${formatINR(p.dealAmount)}\n` +
+    `${en.day}: ${p.dayNumber}/${p.totalDays}\n` +
+    `${en.remaining}: ${formatINR(remaining)}\n` +
+    '- Duely'
   );
 };
 
@@ -66,7 +73,7 @@ export const sendCollectionSMS = async (
 
   // 1) Device SIM (Android dev build) — sends directly, no composer.
   if (isDirectSmsAvailable()) {
-    return sendDirectSms(p.phone, message);
+    return sendDirectSms(p.phone, message, p.simSubscriptionId ?? null);
   }
 
   // 2) Fall back to HTTP gateway if a key is configured.
@@ -84,8 +91,8 @@ export const sendCollectionSMS = async (
       body: JSON.stringify({
         route: 'q',
         message,
-        // Non-Latin scripts (Hindi/Telugu) must go as unicode.
-        language: (p.lang ?? 'en') === 'en' ? 'english' : 'unicode',
+        // The bilingual receipt includes Telugu, so it must use Unicode.
+        language: 'unicode',
         flash: 0,
         numbers: number,
       }),

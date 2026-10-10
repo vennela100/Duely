@@ -114,6 +114,7 @@ interface RecordArgs {
   method: PaymentMethod;
   notes?: string;
   sendSMS?: boolean;
+  simSubscriptionId?: number | null;
   date?: string;
 }
 
@@ -124,8 +125,6 @@ interface RecordResult {
 
 export const useRecordCollection = () => {
   const user = useUIStore((s) => s.user);
-  const msgLang = useUIStore((s) => s.msgLang);
-
   return useCallback(
     async (args: RecordArgs): Promise<RecordResult> => {
       if (!user) throw new Error('Not authenticated');
@@ -143,7 +142,7 @@ export const useRecordCollection = () => {
           dayNumber: projectedDay,
           totalDays: args.customer.collectionDays,
           date: args.date ?? today(),
-          lang: msgLang,
+          simSubscriptionId: args.simSubscriptionId,
         });
       }
 
@@ -160,6 +159,6 @@ export const useRecordCollection = () => {
 
       return { entry, smsResult };
     },
-    [user, msgLang],
+    [user],
   );
 };

@@ -72,8 +72,6 @@ export default function ProfileScreen() {
   const setUnlocked = useUIStore((s) => s.setUnlocked);
   const lang = useUIStore((s) => s.lang);
   const setLang = useUIStore((s) => s.setLang);
-  const msgLang = useUIStore((s) => s.msgLang);
-  const setMsgLang = useUIStore((s) => s.setMsgLang);
   const t = useT();
   const { customers } = useCustomers();
   const stats = useDashboardStats();
@@ -472,21 +470,16 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Message language — language of the SMS receipt sent to customers */}
+        {/* Collection receipts always include English and Telugu. */}
         <Text style={styles.sectionLabel}>{t('profile.msgLanguage').toUpperCase()}</Text>
         <View style={styles.group}>
-          {LANGUAGES.map((l, i) => (
-            <View key={l.code}>
-              <Pressable style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]} onPress={() => setMsgLang(l.code)}>
-                <View style={styles.rowIcon}>
-                  <Feather name="message-circle" size={17} color={Colors.textPrimary} />
-                </View>
-                <Text style={styles.rowLabel}>{l.native}</Text>
-                {msgLang === l.code ? <Feather name="check" size={18} color={Colors.success} /> : null}
-              </Pressable>
-              {i < LANGUAGES.length - 1 ? <View style={styles.divider} /> : null}
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Feather name="message-circle" size={17} color={Colors.textPrimary} />
             </View>
-          ))}
+            <Text style={styles.rowLabel}>తెలుగు + English</Text>
+            <Feather name="check" size={18} color={Colors.success} />
+          </View>
         </View>
         <Text style={styles.hint}>{t('profile.msgLanguageHint')}</Text>
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
@@ -23,6 +23,12 @@ import {
 } from '@/services/localAuth';
 import { canUseBiometric, promptBiometric } from '@/services/biometric';
 import { currentUid } from '@/services/cloudAuth';
+import {
+  getPreferredSmsSubscriptionId,
+  getSmsSubscriptions,
+  isDirectSmsAvailable,
+  setPreferredSmsSubscriptionId,
+} from '@/services/directSms';
 import { useUIStore } from '@/store/ui.store';
 import { useCloudStore } from '@/store/cloud.store';
 
@@ -64,6 +70,31 @@ export default function LockScreen() {
     }
   };
 
+  const chooseSmsSimOnce = async () => {
+    if (!isDirectSmsAvailable() || (await getPreferredSmsSubscriptionId()) !== null) return;
+
+    const subscriptions = await getSmsSubscriptions();
+    if (subscriptions.length === 1) {
+      await setPreferredSmsSubscriptionId(subscriptions[0].subscriptionId);
+      return;
+    }
+    if (subscriptions.length < 2) return;
+
+    await new Promise<void>((resolve) => {
+      Alert.alert(
+        'Choose your SMS SIM',
+        'Duely will use your choice automatically for future receipt messages.',
+        subscriptions.map((sim) => ({
+          text: `SIM ${sim.slotIndex + 1}${sim.carrierName ? ` · ${sim.carrierName}` : ''}`,
+          onPress: () => {
+            void setPreferredSmsSubscriptionId(sim.subscriptionId).finally(resolve);
+          },
+        })),
+        { cancelable: false },
+      );
+    });
+  };
+
   useEffect(() => {
     (async () => {
       const exists = await hasPin();
@@ -77,6 +108,7 @@ export default function LockScreen() {
       } else if (exists) {
         // Returning user → unlock with stored PIN / fingerprint.
         setPhase('enter');
+        void chooseSmsSimOnce();
         if (bio) setTimeout(tryBiometric, 400);
       } else {
         // First ever launch (or signed-in but no PIN yet).
@@ -95,6 +127,7 @@ export default function LockScreen() {
     setSigninError(null);
     try {
       await cloudConnect(email, password); // Firebase sign-in/create + start sync
+      await chooseSmsSimOnce();
       await clearSignedOut();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       // Returning user keeps their PIN → ask it. New user → ask name, then PIN.

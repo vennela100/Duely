@@ -25,6 +25,12 @@ import { useRecordCollection } from '@/hooks/useCollection';
 import { useSMSAvailability } from '@/hooks/useSMS';
 import { useUIStore } from '@/store/ui.store';
 import { buildCollectionMessage } from '@/services/sms.service';
+import {
+  getPreferredSmsSubscriptionId,
+  getSmsSubscriptions,
+  setPreferredSmsSubscriptionId,
+  type SmsSubscription,
+} from '@/services/directSms';
 import { formatINR } from '@/utils/format';
 import { today } from '@/utils/date';
 import { remainingAmount } from '@/utils/calc';
@@ -118,12 +124,14 @@ export function CollectionEntryModal({
   const recordCollection = useRecordCollection();
   const { available: smsAvailable } = useSMSAvailability();
   const showToast = useUIStore((s) => s.showToast);
-  const msgLang = useUIStore((s) => s.msgLang);
 
   const [amountRaw, setAmountRaw] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const [notes, setNotes] = useState('');
   const [sendSMS, setSendSMS] = useState(true);
+  const [smsSubscriptions, setSmsSubscriptions] = useState<SmsSubscription[]>([]);
+  const [selectedSimId, setSelectedSimId] = useState<number | null>(null);
+  const [loadingSmsSubscriptions, setLoadingSmsSubscriptions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const sheetY = useSharedValue(600);
@@ -137,12 +145,35 @@ export function CollectionEntryModal({
       setMethod('cash');
       setNotes('');
       setSendSMS(smsAvailable !== false);
+      setSmsSubscriptions([]);
+      setSelectedSimId(null);
       setSubmitting(false);
     } else {
       sheetY.value = withTiming(600, { duration: 220 });
       backdropOpacity.value = withTiming(0, { duration: 180 });
     }
   }, [visible, customer, smsAvailable, sheetY, backdropOpacity]);
+
+  useEffect(() => {
+    if (!visible || smsAvailable !== true) return;
+    let active = true;
+    setLoadingSmsSubscriptions(true);
+    Promise.all([getSmsSubscriptions(), getPreferredSmsSubscriptionId()])
+      .then(([subscriptions, preferredSubscriptionId]) => {
+        if (!active) return;
+        setSmsSubscriptions(subscriptions);
+        const preferred = subscriptions.find((sim) => sim.subscriptionId === preferredSubscriptionId);
+        const selected = preferred ?? subscriptions.find((sim) => sim.isDefault) ?? subscriptions[0] ?? null;
+        setSelectedSimId(selected?.subscriptionId ?? null);
+        if (selected) void setPreferredSmsSubscriptionId(selected.subscriptionId);
+      })
+      .finally(() => {
+        if (active) setLoadingSmsSubscriptions(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [visible, smsAvailable]);
 
   useEffect(() => {
     if (smsAvailable === false) setSendSMS(false);
@@ -170,9 +201,8 @@ export function CollectionEntryModal({
       dayNumber: projectedDay,
       totalDays: customer.collectionDays,
       date: today(),
-      lang: msgLang,
     });
-  }, [customer, amount, msgLang]);
+  }, [customer, amount]);
 
   if (!customer) return null;
 
@@ -180,8 +210,17 @@ export function CollectionEntryModal({
   const overpayment = amount > remaining ? amount - remaining : 0;
   const lowAmount = amount > 0 && amount < customer.dailyAmount * 0.5;
 
-  const canSubmit = amount > 0 && !submitting;
-  const willSendSMS = sendSMS && smsAvailable === true;
+  const needsSimChoice = smsSubscriptions.length > 1 && selectedSimId === null;
+  const waitingForSim = sendSMS && smsAvailable === true && (loadingSmsSubscriptions || needsSimChoice);
+  const canSubmit = amount > 0 && !submitting && !waitingForSim;
+  const willSendSMS =
+    sendSMS && smsAvailable === true && !loadingSmsSubscriptions;
+  const selectedSim = smsSubscriptions.find((sim) => sim.subscriptionId === selectedSimId);
+
+  const chooseSim = (subscriptionId: number) => {
+    setSelectedSimId(subscriptionId);
+    void setPreferredSmsSubscriptionId(subscriptionId);
+  };
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -194,8 +233,14 @@ export function CollectionEntryModal({
         method,
         notes: notes.trim() ? notes.trim() : undefined,
         sendSMS: willSendSMS,
+        simSubscriptionId: selectedSimId,
       });
-      showToast(`${formatINR(amount)} collected`, 'success');
+      showToast(
+        result.smsResult?.ok === false
+          ? `${formatINR(amount)} collected, but SMS was not sent`
+          : `${formatINR(amount)} collected`,
+        result.smsResult?.ok === false ? 'error' : 'success',
+      );
       onSuccess?.(result.entry);
       onClose();
     } catch (err) {
@@ -304,6 +349,43 @@ export function CollectionEntryModal({
                 <Text style={styles.smsText}>{previewMessage}</Text>
               </Card>
 
+              {selectedSim ? (
+                <View style={styles.simPickerWrap}>
+                  <Text style={styles.toggleNote}>
+                    Automatically sending from SIM {selectedSim.slotIndex + 1}
+                    {selectedSim.carrierName ? ` · ${selectedSim.carrierName}` : ''}.
+                  </Text>
+                </View>
+              ) : smsSubscriptions.length > 1 ? (
+                <View style={styles.simPickerWrap}>
+                  <Text style={styles.sectionLabel}>Choose a SIM to send this SMS</Text>
+                  <View style={styles.simOptions}>
+                    {smsSubscriptions.map((sim) => {
+                      const selected = selectedSimId === sim.subscriptionId;
+                      const label = sim.label || sim.carrierName || `SIM ${sim.slotIndex + 1}`;
+                      return (
+                        <Pressable
+                          key={sim.subscriptionId}
+                          onPress={() => chooseSim(sim.subscriptionId)}
+                          style={[styles.simOption, selected && styles.simOptionSelected]}
+                          accessibilityRole="radio"
+                          accessibilityState={{ selected }}
+                        >
+                          <Text style={[styles.simOptionText, selected && styles.simOptionTextSelected]}>
+                            SIM {sim.slotIndex + 1} · {label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {needsSimChoice ? (
+                    <Text style={styles.toggleNote}>Choose a SIM before sending the receipt.</Text>
+                  ) : null}
+                </View>
+              ) : loadingSmsSubscriptions ? (
+                <Text style={styles.toggleNote}>Checking available SIMs…</Text>
+              ) : null}
+
               <Pressable
                 onPress={() => {
                   if (smsAvailable === false) return;
@@ -338,7 +420,13 @@ export function CollectionEntryModal({
               <View style={styles.submitWrap}>
                 <Button
                   title={
-                    willSendSMS ? 'Collect & Send SMS' : 'Collect'
+                    waitingForSim
+                      ? loadingSmsSubscriptions
+                        ? 'Checking SIMs…'
+                        : 'Choose a SIM'
+                      : willSendSMS
+                        ? 'Collect & Send SMS'
+                        : 'Collect'
                   }
                   onPress={handleSubmit}
                   fullWidth
@@ -480,6 +568,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: Colors.textPrimary,
+  },
+  simPickerWrap: {
+    marginTop: Spacing.md,
+  },
+  simOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  simOption: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  simOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primarySurface,
+  },
+  simOptionText: {
+    fontFamily: Typography.bodyMedium,
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  simOptionTextSelected: {
+    color: Colors.primary,
   },
   toggleRow: {
     flexDirection: 'row',

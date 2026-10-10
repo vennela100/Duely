@@ -114,8 +114,8 @@ const en: Dict = {
   'profile.driveConnected': 'Drive connected',
   'profile.driveHint': 'A second backup copy in your own Google Drive (Duely Backups folder)',
   'profile.language': 'Language',
-  'profile.msgLanguage': 'Message language',
-  'profile.msgLanguageHint': 'Language of the SMS sent to customers after a payment',
+  'profile.msgLanguage': 'SMS receipt languages',
+  'profile.msgLanguageHint': 'Collection receipts are sent in English and Telugu',
   'profile.customers': 'Customers',
   'profile.profit': 'Profit',
 
@@ -241,8 +241,8 @@ const hi: Dict = {
   'profile.driveConnected': 'ड्राइव कनेक्ट है',
   'profile.driveHint': 'आपकी अपनी गूगल ड्राइव में दूसरी बैकअप कॉपी (Duely Backups फोल्डर)',
   'profile.language': 'भाषा',
-  'profile.msgLanguage': 'संदेश भाषा',
-  'profile.msgLanguageHint': 'भुगतान के बाद ग्राहक को भेजे जाने वाले SMS की भाषा',
+  'profile.msgLanguage': 'SMS रसीद की भाषाएँ',
+  'profile.msgLanguageHint': 'भुगतान रसीद अंग्रेज़ी और तेलुगु में भेजी जाती है',
   'profile.customers': 'ग्राहक',
   'profile.profit': 'लाभ',
 
@@ -368,8 +368,8 @@ const te: Dict = {
   'profile.driveConnected': 'డ్రైవ్ కనెక్ట్ అయింది',
   'profile.driveHint': 'మీ స్వంత గూగుల్ డ్రైవ్‌లో రెండవ బ్యాకప్ కాపీ (Duely Backups ఫోల్డర్)',
   'profile.language': 'భాష',
-  'profile.msgLanguage': 'సందేశ భాష',
-  'profile.msgLanguageHint': 'చెల్లింపు తర్వాత కస్టమర్‌కు పంపే SMS భాష',
+  'profile.msgLanguage': 'SMS రసీదు భాషలు',
+  'profile.msgLanguageHint': 'చెల్లింపు రసీదులు ఇంగ్లీష్ మరియు తెలుగులో పంపబడతాయి',
   'profile.customers': 'కస్టమర్లు',
   'profile.profit': 'లాభం',
 

@@ -32,6 +32,7 @@
       "permissions": [
         "READ_CONTACTS",
         "SEND_SMS",
+        "READ_PHONE_STATE",
         "VIBRATE"
       ],
       "blockedPermissions": [

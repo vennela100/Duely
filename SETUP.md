@@ -22,9 +22,9 @@ Scan QR with **Expo Go** app on phone (iOS / Android).
 
 ## SMS notes
 
-- `expo-sms` opens the native SMS composer. User taps send. Uses device SIM — free.
-- Direct send (no composer) needs a dev build + `SEND_SMS` permission grant on Android. MVP uses composer.
-- iOS always uses composer (Apple restriction).
+- Android direct SMS runs in a development or production build, not Expo Go. Grant SMS permission when asked.
+- On dual-SIM Android phones, choose the sending line in the collection sheet. Duely asks for Phone state permission to list active SIM labels; if denied, Android's configured default SMS SIM is used.
+- iOS and Expo Go do not include the direct-SMS module. The receipt SMS toggle is unavailable there unless an SMS gateway is configured.
 
 ## Production build
 
