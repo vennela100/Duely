@@ -35,6 +35,7 @@ import { formatINR } from '@/utils/format';
 import { today } from '@/utils/date';
 import { remainingAmount } from '@/utils/calc';
 import type { CollectionEntry, Customer, PaymentMethod } from '@/types';
+import { useT } from '@/utils/i18n';
 
 export interface CollectionEntryModalProps {
   visible: boolean;
@@ -43,11 +44,7 @@ export interface CollectionEntryModalProps {
   onSuccess?: (entry: CollectionEntry) => void;
 }
 
-const METHODS: { key: PaymentMethod; label: string }[] = [
-  { key: 'cash', label: 'Cash' },
-  { key: 'upi', label: 'UPI' },
-  { key: 'other', label: 'Other' },
-];
+const METHODS: PaymentMethod[] = ['cash', 'upi', 'other'];
 
 const formatGrouped = (n: number): string => {
   if (!Number.isFinite(n)) return '0';
@@ -67,6 +64,7 @@ interface AmountInputProps {
 }
 
 function BigAmountInput({ value, onChange, customer }: AmountInputProps) {
+  const t = useT();
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
 
@@ -103,12 +101,12 @@ function BigAmountInput({ value, onChange, customer }: AmountInputProps) {
         />
       </View>
       <View style={amountStyles.metaRow}>
-        <Text style={amountStyles.meta}>Daily: {formatINR(customer.dailyAmount)}</Text>
+        <Text style={amountStyles.meta}>{t('collection.daily')}: {formatINR(customer.dailyAmount)}</Text>
         <Text style={amountStyles.metaDot}>·</Text>
-        <Text style={amountStyles.meta}>Remaining: {formatINR(remaining)}</Text>
+        <Text style={amountStyles.meta}>{t('collection.remaining')}: {formatINR(remaining)}</Text>
         <Text style={amountStyles.metaDot}>·</Text>
         <Text style={amountStyles.meta}>
-          Day {dayNumber}/{customer.collectionDays}
+          {t('common.day')} {dayNumber}/{customer.collectionDays}
         </Text>
       </View>
     </View>
@@ -124,6 +122,8 @@ export function CollectionEntryModal({
   const recordCollection = useRecordCollection();
   const { available: smsAvailable } = useSMSAvailability();
   const showToast = useUIStore((s) => s.showToast);
+  const msgLang = useUIStore((s) => s.msgLang);
+  const t = useT();
 
   const [amountRaw, setAmountRaw] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('cash');
@@ -201,8 +201,9 @@ export function CollectionEntryModal({
       dayNumber: projectedDay,
       totalDays: customer.collectionDays,
       date: today(),
+      lang: msgLang,
     });
-  }, [customer, amount]);
+  }, [customer, amount, msgLang]);
 
   if (!customer) return null;
 
@@ -234,18 +235,18 @@ export function CollectionEntryModal({
         notes: notes.trim() ? notes.trim() : undefined,
         sendSMS: willSendSMS,
         simSubscriptionId: selectedSimId,
+        lang: msgLang,
       });
       showToast(
         result.smsResult?.ok === false
-          ? `${formatINR(amount)} collected, but SMS was not sent`
-          : `${formatINR(amount)} collected`,
+          ? t('collection.collectedSmsFailed').replace('{amount}', formatINR(amount))
+          : t('collection.collected').replace('{amount}', formatINR(amount)),
         result.smsResult?.ok === false ? 'error' : 'success',
       );
       onSuccess?.(result.entry);
       onClose();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not record collection';
-      showToast(message, 'error');
+      showToast(t('collection.couldNotRecord'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -274,7 +275,7 @@ export function CollectionEntryModal({
 
             <View style={styles.header}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.headerLabel}>Record collection</Text>
+                <Text style={styles.headerLabel}>{t('collection.record')}</Text>
                 <Text style={styles.headerName} numberOfLines={1}>
                   {customer.name}
                 </Text>
@@ -284,7 +285,7 @@ export function CollectionEntryModal({
                 hitSlop={12}
                 style={styles.closeBtn}
                 accessibilityRole="button"
-                accessibilityLabel="Close"
+                accessibilityLabel={t('common.close')}
               >
                 <Text style={styles.closeIcon}>✕</Text>
               </Pressable>
@@ -303,21 +304,21 @@ export function CollectionEntryModal({
 
               {overpayment > 0 ? (
                 <Text style={styles.warningRed}>
-                  Overpayment by {formatINR(overpayment)}
+                  {t('collection.overpayment').replace('{amount}', formatINR(overpayment))}
                 </Text>
               ) : null}
               {lowAmount && overpayment === 0 ? (
-                <Text style={styles.warningYellow}>Less than daily amount</Text>
+                <Text style={styles.warningYellow}>{t('collection.lessThanDaily')}</Text>
               ) : null}
 
-              <Text style={styles.sectionLabel}>Payment method</Text>
+              <Text style={styles.sectionLabel}>{t('collection.paymentMethod')}</Text>
               <View style={styles.segments}>
                 {METHODS.map((m) => {
-                  const active = m.key === method;
+                  const active = m === method;
                   return (
                     <Pressable
-                      key={m.key}
-                      onPress={() => setMethod(m.key)}
+                      key={m}
+                      onPress={() => setMethod(m)}
                       style={[styles.segment, active && styles.segmentActive]}
                       accessibilityRole="button"
                       accessibilityState={{ selected: active }}
@@ -328,7 +329,7 @@ export function CollectionEntryModal({
                           active && styles.segmentLabelActive,
                         ]}
                       >
-                        {m.label}
+                        {m === 'cash' ? t('collection.cash') : m === 'upi' ? 'UPI' : t('collection.other')}
                       </Text>
                     </Pressable>
                   );
@@ -337,14 +338,14 @@ export function CollectionEntryModal({
 
               <View style={styles.notesWrap}>
                 <Input
-                  label="Notes (optional)"
+                  label={t('addCustomer.notesOptional')}
                   value={notes}
                   onChangeText={setNotes}
                   multiline
                 />
               </View>
 
-              <Text style={styles.sectionLabel}>SMS Preview</Text>
+              <Text style={styles.sectionLabel}>{t('collection.smsPreview')}</Text>
               <Card padding="md" style={styles.smsCard}>
                 <Text style={styles.smsText}>{previewMessage}</Text>
               </Card>
@@ -352,13 +353,13 @@ export function CollectionEntryModal({
               {selectedSim ? (
                 <View style={styles.simPickerWrap}>
                   <Text style={styles.toggleNote}>
-                    Automatically sending from SIM {selectedSim.slotIndex + 1}
+                    {t('collection.automaticSim').replace('{number}', String(selectedSim.slotIndex + 1))}
                     {selectedSim.carrierName ? ` · ${selectedSim.carrierName}` : ''}.
                   </Text>
                 </View>
               ) : smsSubscriptions.length > 1 ? (
                 <View style={styles.simPickerWrap}>
-                  <Text style={styles.sectionLabel}>Choose a SIM to send this SMS</Text>
+                  <Text style={styles.sectionLabel}>{t('collection.chooseSimSms')}</Text>
                   <View style={styles.simOptions}>
                     {smsSubscriptions.map((sim) => {
                       const selected = selectedSimId === sim.subscriptionId;
@@ -379,11 +380,11 @@ export function CollectionEntryModal({
                     })}
                   </View>
                   {needsSimChoice ? (
-                    <Text style={styles.toggleNote}>Choose a SIM before sending the receipt.</Text>
+                    <Text style={styles.toggleNote}>{t('collection.chooseSimBeforeReceipt')}</Text>
                   ) : null}
                 </View>
               ) : loadingSmsSubscriptions ? (
-                <Text style={styles.toggleNote}>Checking available SIMs…</Text>
+                <Text style={styles.toggleNote}>{t('collection.checkingSims')}</Text>
               ) : null}
 
               <Pressable
@@ -408,10 +409,10 @@ export function CollectionEntryModal({
                   {willSendSMS ? <Text style={styles.checkmark}>✓</Text> : null}
                 </View>
                 <View style={styles.toggleTextCol}>
-                  <Text style={styles.toggleLabel}>Send SMS to customer</Text>
+                  <Text style={styles.toggleLabel}>{t('collection.sendSms')}</Text>
                   {smsAvailable === false ? (
                     <Text style={styles.toggleNote}>
-                      SMS not available on this device
+                      {t('collection.smsUnavailable')}
                     </Text>
                   ) : null}
                 </View>
@@ -422,11 +423,11 @@ export function CollectionEntryModal({
                   title={
                     waitingForSim
                       ? loadingSmsSubscriptions
-                        ? 'Checking SIMs…'
-                        : 'Choose a SIM'
+                        ? t('collection.checkingSimsShort')
+                        : t('collection.chooseSim')
                       : willSendSMS
-                        ? 'Collect & Send SMS'
-                        : 'Collect'
+                        ? t('collection.collectSendSms')
+                        : t('collection.collect')
                   }
                   onPress={handleSubmit}
                   fullWidth

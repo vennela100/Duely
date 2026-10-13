@@ -34,12 +34,14 @@ import { useUIStore } from '@/store/ui.store';
 import { useCloudStore } from '@/store/cloud.store';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Toast } from '@/components/ui/Toast';
+import { useT } from '@/utils/i18n';
 
 // Auth is a device-local PIN (services/localAuth) — no Firebase / network / console.
 // A fixed local user keeps the data layer (which is local AsyncStorage) happy.
 const LOCAL_USER = { uid: 'local', email: 'owner@device' } as unknown as User;
 
 export default function RootLayout() {
+  const t = useT();
   const [fontsLoaded] = useFonts({
     Geist_400Regular,
     Geist_500Medium,
@@ -66,8 +68,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     setUser(LOCAL_USER);
-    loadLang();
-    getOwnerName().then((n) => {
+    Promise.all([loadLang(), getOwnerName()]).then(([, n]) => {
       if (n) setOwnerNameStore(n);
       setAuthLoading(false);
     });
@@ -116,12 +117,12 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen
               name="customer/add"
-              options={{ presentation: 'modal', title: 'Add Customer' }}
+              options={{ presentation: 'modal', title: t('addCustomer.title') }}
             />
             <Stack.Screen name="customer/[id]" options={{ headerShown: false }} />
             <Stack.Screen
               name="customer/edit/[id]"
-              options={{ title: 'Edit Customer' }}
+              options={{ title: t('customerEdit.title') }}
             />
             <Stack.Screen name="customer/txn/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="customer/profile/[id]" options={{ headerShown: false }} />

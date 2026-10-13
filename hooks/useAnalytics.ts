@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { useCustomers } from './useCustomers';
 import { useEntriesInRange, useTodayCollection } from './useCollection';
+import { useUIStore } from '@/store/ui.store';
 import { last7Days, toISODate } from '@/utils/date';
 import { remainingAmount, calcProfit } from '@/utils/calc';
 import type { Customer } from '@/types';
@@ -118,6 +119,8 @@ const daysBetweenCount = (from: string, to: string): number => {
 // Flexible from→to analytics. Daily buckets for short ranges, monthly for long.
 export const useRangeAnalytics = (from: string, to: string): RangeAnalytics => {
   const { entries, loading } = useEntriesInRange(from, to);
+  const lang = useUIStore((s) => s.lang);
+  const locale = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
 
   return useMemo(() => {
     const received = entries.filter((e) => (e.kind ?? 'received') === 'received');
@@ -140,7 +143,7 @@ export const useRangeAnalytics = (from: string, to: string): RangeAnalytics => {
       while (cur <= end) {
         const k = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`;
         buckets.set(k, {
-          label: cur.toLocaleDateString('en-IN', { month: 'short' }),
+          label: cur.toLocaleDateString(locale, { month: 'short' }),
           date: `${k}-15`,
           total: 0,
         });
@@ -153,7 +156,7 @@ export const useRangeAnalytics = (from: string, to: string): RangeAnalytics => {
       while (cur <= end) {
         const k = cur.toISOString().slice(0, 10);
         buckets.set(k, {
-          label: cur.toLocaleDateString('en-IN', { day: 'numeric' }),
+          label: cur.toLocaleDateString(locale, { day: 'numeric' }),
           date: k,
           total: 0,
         });
@@ -178,7 +181,7 @@ export const useRangeAnalytics = (from: string, to: string): RangeAnalytics => {
       })),
       loading,
     };
-  }, [entries, from, to, loading]);
+  }, [entries, from, to, loading, locale]);
 };
 
 export const useTopCustomers = (limit = 5): { data: Customer[] } => {

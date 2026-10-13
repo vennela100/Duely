@@ -31,6 +31,7 @@ import {
 } from '@/services/directSms';
 import { useUIStore } from '@/store/ui.store';
 import { useCloudStore } from '@/store/cloud.store';
+import { useT } from '@/utils/i18n';
 
 type Phase = 'loading' | 'signin' | 'name' | 'create' | 'confirm' | 'enter';
 
@@ -38,6 +39,7 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'bio', '0', 'del'];
 const PIN_LENGTH = 4;
 
 export default function LockScreen() {
+  const t = useT();
   const setUnlocked = useUIStore((s) => s.setUnlocked);
   const setOwnerNameStore = useUIStore((s) => s.setOwnerName);
 
@@ -82,8 +84,8 @@ export default function LockScreen() {
 
     await new Promise<void>((resolve) => {
       Alert.alert(
-        'Choose your SMS SIM',
-        'Duely will use your choice automatically for future receipt messages.',
+        t('auth.chooseSmsSim'),
+        t('auth.smsSimHint'),
         subscriptions.map((sim) => ({
           text: `SIM ${sim.slotIndex + 1}${sim.carrierName ? ` · ${sim.carrierName}` : ''}`,
           onPress: () => {
@@ -120,7 +122,7 @@ export default function LockScreen() {
 
   const submitSignin = async () => {
     if (!email.trim() || password.length < 6) {
-      setSigninError('Enter your email and a password (min 6 characters).');
+      setSigninError(t('auth.emailPasswordRequired'));
       return;
     }
     setSigninBusy(true);
@@ -144,7 +146,7 @@ export default function LockScreen() {
         setPhase('name');
       }
     } catch (e) {
-      setSigninError((e as Error).message);
+      setSigninError(t('auth.signInFailed'));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     } finally {
       setSigninBusy(false);
@@ -154,7 +156,7 @@ export default function LockScreen() {
   const submitName = async () => {
     const who = nameInput.trim();
     if (who.length < 2) {
-      setSigninError('Please enter your name.');
+      setSigninError(t('auth.nameRequired'));
       return;
     }
     setSigninError(null);
@@ -226,30 +228,30 @@ export default function LockScreen() {
   const title = useMemo(() => {
     switch (phase) {
       case 'signin':
-        return 'Sign in to Duely';
+        return t('auth.signIn');
       case 'name':
-        return "What's your name?";
+        return t('auth.nameTitle');
       case 'create':
-        return owner ? `Set a PIN, ${owner}` : 'Create your PIN';
+        return owner ? t('auth.setPinFor').replace('{name}', owner) : t('auth.createPin');
       case 'confirm':
-        return 'Confirm your PIN';
+        return t('auth.confirmPin');
       case 'enter':
-        return owner ? `Welcome back, ${owner}` : 'Enter your PIN';
+        return owner ? t('auth.welcomeBack').replace('{name}', owner) : t('auth.enterPin');
       default:
         return '';
     }
-  }, [phase, owner]);
+  }, [phase, owner, t]);
 
   const subtitle =
     phase === 'signin'
-      ? 'Your account keeps data backed up & synced. New here? Just pick a password — the account is created for you.'
+      ? t('auth.signInHint')
       : phase === 'name'
-        ? 'This shows on your profile.'
+        ? t('auth.profileNameHint')
       : phase === 'create'
-        ? 'A 4-digit PIN unlocks the app quickly each day.'
+        ? t('auth.pinHint')
         : phase === 'confirm'
-          ? 'Re-enter to confirm.'
-          : 'Unlock to continue.';
+          ? t('auth.confirmPinHint')
+          : t('auth.unlockHint');
 
   if (phase === 'loading') {
     return <View style={styles.loading} />;
@@ -281,7 +283,7 @@ export default function LockScreen() {
               style={styles.input}
               value={email}
               onChangeText={setEmail}
-              placeholder="Email"
+              placeholder={t('auth.email')}
               placeholderTextColor={Colors.textTertiary}
               autoCapitalize="none"
               keyboardType="email-address"
@@ -291,7 +293,7 @@ export default function LockScreen() {
               style={styles.input}
               value={password}
               onChangeText={setPassword}
-              placeholder="Password (min 6 characters)"
+              placeholder={t('auth.password')}
               placeholderTextColor={Colors.textTertiary}
               secureTextEntry
               autoCapitalize="none"
@@ -302,7 +304,7 @@ export default function LockScreen() {
               disabled={signinBusy}
               onPress={submitSignin}
             >
-              <Text style={styles.ctaText}>{signinBusy ? 'Signing in…' : 'Continue'}</Text>
+              <Text style={styles.ctaText}>{signinBusy ? t('auth.signingIn') : t('common.continue')}</Text>
             </Pressable>
           </View>
         ) : phase === 'name' ? (
@@ -311,14 +313,14 @@ export default function LockScreen() {
               style={styles.input}
               value={nameInput}
               onChangeText={setNameInput}
-              placeholder="Your name"
+              placeholder={t('auth.name')}
               placeholderTextColor={Colors.textTertiary}
               autoCapitalize="words"
               autoFocus
             />
             {signinError ? <Text style={styles.error}>{signinError}</Text> : null}
             <Pressable style={styles.cta} onPress={submitName}>
-              <Text style={styles.ctaText}>Continue</Text>
+              <Text style={styles.ctaText}>{t('common.continue')}</Text>
             </Pressable>
           </View>
         ) : (

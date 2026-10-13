@@ -41,7 +41,7 @@ export function CustomerCard({ customer, onPress, onLongPress }: CustomerCardPro
 
   const sub = customer.lastCollectionDate
     ? `${t('customers.lastPaid')} ${formatDisplay(customer.lastCollectionDate)}`
-    : `${formatINR(customer.dailyAmount)}/day · Day ${customer.daysCollected}/${customer.collectionDays}`;
+    : `${formatINR(customer.dailyAmount)}${t('addCustomer.perDay')} · ${t('common.day')} ${customer.daysCollected}/${customer.collectionDays}`;
 
   const handleLongPress = () => {
     if (!onLongPress) return;

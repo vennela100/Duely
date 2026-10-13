@@ -1,6 +1,8 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import { requireNativeModule } from 'expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUIStore } from '@/store/ui.store';
+import { translate } from '@/utils/i18n';
 
 // Direct device SMS via our local Expo native module (modules/smsdirect → Android
 // SmsManager). Sends from the SIM with no composer. Android only; the native module
@@ -53,13 +55,14 @@ export const isDirectSmsAvailable = (): boolean =>
 
 const requestPermission = async (): Promise<boolean> => {
   try {
+    const t = (key: string) => translate(useUIStore.getState().lang, key);
     const res = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.SEND_SMS,
       {
-        title: 'Send SMS',
-        message: 'Duely sends payment confirmations to customers via SMS.',
-        buttonPositive: 'Allow',
-        buttonNegative: 'Deny',
+        title: t('sms.permissionTitle'),
+        message: t('sms.permissionMessage'),
+        buttonPositive: t('sms.allow'),
+        buttonNegative: t('sms.deny'),
       },
     );
     return res === PermissionsAndroid.RESULTS.GRANTED;
@@ -71,13 +74,14 @@ const requestPermission = async (): Promise<boolean> => {
 export const getSmsSubscriptions = async (): Promise<SmsSubscription[]> => {
   if (!isDirectSmsAvailable() || !nativeModule) return [];
   try {
+    const t = (key: string) => translate(useUIStore.getState().lang, key);
     const res = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
       {
-        title: 'Choose sending SIM',
-        message: 'Duely needs to see active SIM labels so you can choose which SIM sends payment receipts. It does not read SIM phone numbers.',
-        buttonPositive: 'Continue',
-        buttonNegative: 'Cancel',
+        title: t('sms.chooseSimTitle'),
+        message: t('sms.chooseSimMessage'),
+        buttonPositive: t('common.continue'),
+        buttonNegative: t('common.cancel'),
       },
     );
     if (res !== PermissionsAndroid.RESULTS.GRANTED) return [];

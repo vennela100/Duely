@@ -13,6 +13,8 @@ import {
 } from 'date-fns';
 import { Colors, Radius, Spacing, Typography } from '@/constants/theme';
 import { toISODate } from '@/utils/date';
+import { useT } from '@/utils/i18n';
+import { useUIStore } from '@/store/ui.store';
 
 export interface CalendarProps {
   value: string; // ISO yyyy-mm-dd
@@ -21,10 +23,16 @@ export interface CalendarProps {
 }
 
 type ViewMode = 'days' | 'months' | 'years';
-const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 export function Calendar({ value, onSelect, maxDate }: CalendarProps) {
+  const t = useT();
+  const lang = useUIStore((s) => s.lang);
+  const locale = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(new Date(2024, 0, 7 + i)),
+  );
+  const months = Array.from({ length: 12 }, (_, i) =>
+    new Intl.DateTimeFormat(locale, { month: 'short' }).format(new Date(2024, i, 1)),
+  );
   const selected = value ? parseISO(value) : new Date();
   const max = maxDate ? parseISO(maxDate) : new Date();
   const [month, setMonth] = useState(() => startOfMonth(selected));
@@ -51,7 +59,7 @@ export function Calendar({ value, onSelect, maxDate }: CalendarProps) {
             <Feather name="chevron-left" size={20} color={Colors.textPrimary} />
           </Pressable>
           <Pressable onPress={() => setView('months')} hitSlop={8}>
-            <Text style={styles.title}>{format(month, 'MMMM yyyy')}</Text>
+            <Text style={styles.title}>{month.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}</Text>
           </Pressable>
           <Pressable
             onPress={() => setMonth((m) => addMonths(m, 1))}
@@ -63,7 +71,7 @@ export function Calendar({ value, onSelect, maxDate }: CalendarProps) {
           </Pressable>
         </View>
         <View style={styles.weekRow}>
-          {WEEKDAYS.map((w, i) => (
+          {weekdays.map((w, i) => (
             <Text key={i} style={styles.weekday}>{w}</Text>
           ))}
         </View>
@@ -101,7 +109,7 @@ export function Calendar({ value, onSelect, maxDate }: CalendarProps) {
         <View style={styles.nav} />
       </View>
       <View style={styles.gridBig}>
-        {MONTHS.map((m, i) => {
+        {months.map((m, i) => {
           const idx = month.getFullYear() * 12 + i;
           const disabled = idx > maxMonthIdx;
           const isSel = i === month.getMonth();
@@ -133,7 +141,7 @@ export function Calendar({ value, onSelect, maxDate }: CalendarProps) {
       <>
         <View style={styles.head}>
           <View style={styles.nav} />
-          <Text style={styles.title}>Select year</Text>
+          <Text style={styles.title}>{t('calendar.selectYear')}</Text>
           <View style={styles.nav} />
         </View>
         <View style={styles.gridBig}>

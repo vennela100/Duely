@@ -72,6 +72,8 @@ export default function ProfileScreen() {
   const setUnlocked = useUIStore((s) => s.setUnlocked);
   const lang = useUIStore((s) => s.lang);
   const setLang = useUIStore((s) => s.setLang);
+  const msgLang = useUIStore((s) => s.msgLang);
+  const setMsgLang = useUIStore((s) => s.setMsgLang);
   const t = useT();
   const { customers } = useCustomers();
   const stats = useDashboardStats();
@@ -102,7 +104,7 @@ export default function ProfileScreen() {
 
   const connectCloud = async () => {
     if (!cloudEmail.trim() || cloudPw.length < 6) {
-      Alert.alert('Check details', 'Enter the Duely email and a password (min 6 characters).');
+      Alert.alert(t('profile.checkDetails'), t('profile.enterEmailPassword'));
       return;
     }
     try {
@@ -111,24 +113,24 @@ export default function ProfileScreen() {
       setCloudOpen(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {
-      Alert.alert('Cloud connect failed', (e as Error).message);
+      Alert.alert(t('profile.cloudConnectFailed'), t('common.error'));
     }
   };
 
   const restoreLatest = () => {
     if (!cloud.uid) return;
-    Alert.alert('Restore latest', 'Pulls your most recent cloud data onto this device, replacing whatever is here. Use after data loss or reinstall. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.restoreLatest'), t('profile.restoreLatestConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Restore',
+        text: t('common.restore'),
         style: 'destructive',
-        onPress: () => runBusy('Restoring…', async () => {
+        onPress: () => runBusy(t('common.loading'), async () => {
           const res = await restoreLatestCloud(cloud.uid!);
           if (res.ok) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-            Alert.alert('Restored', 'Your latest cloud data is back on this device.');
+            Alert.alert(t('profile.restored'), t('profile.latestCloudRestored'));
           } else {
-            Alert.alert('Nothing to restore', res.reason ?? 'Unknown error');
+            Alert.alert(t('profile.nothingToRestore'), t('common.error'));
           }
         }),
       },
@@ -137,36 +139,36 @@ export default function ProfileScreen() {
 
   const openCloudRestore = () => {
     if (!cloud.uid) return;
-    return runBusy('Loading backups…', async () => {
+    return runBusy(t('common.loading'), async () => {
       try {
         const list = await listCloudBackups(cloud.uid!);
         if (list.length === 0) {
-          Alert.alert('No cloud backups', 'No dated backup in the cloud yet.');
+          Alert.alert(t('profile.noCloudBackups'));
           return;
         }
         setCloudBackups(list);
         setCloudRestoreOpen(true);
       } catch (e) {
-        Alert.alert('Could not load', (e as Error).message);
+        Alert.alert(t('profile.couldNotLoad'), t('common.error'));
       }
     });
   };
 
   const doCloudRestore = (date: string) => {
     if (!cloud.uid) return;
-    Alert.alert('Restore from cloud?', `Replaces ALL current data with the ${date} cloud backup. Cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.cloudRestore'), t('profile.restoreCloudConfirm').replace('{date}', date), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Restore',
+        text: t('common.restore'),
         style: 'destructive',
-        onPress: () => runBusy('Restoring…', async () => {
+        onPress: () => runBusy(t('common.loading'), async () => {
           const res = await restoreCloudBackup(cloud.uid!, date);
           setCloudRestoreOpen(false);
           if (res.ok) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-            Alert.alert('Restored', `Data restored from cloud (${date}).`);
+            Alert.alert(t('profile.restored'), t('profile.restoredCloudSummary').replace('{date}', date));
           } else {
-            Alert.alert('Restore failed', res.reason ?? 'Unknown error');
+            Alert.alert(t('profile.restoreFailed'), t('common.error'));
           }
         }),
       },
@@ -175,23 +177,23 @@ export default function ProfileScreen() {
 
   const disconnectCloud = () => {
     Alert.alert(
-      'Disconnect cloud',
-      'Stops cloud sync on this device. Your PIN and data stay — you keep using the app offline and can reconnect anytime.',
+      t('profile.disconnect'),
+      t('profile.disconnectCloudConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Disconnect', style: 'destructive', onPress: () => cloud.disconnect() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('profile.disconnect'), style: 'destructive', onPress: () => cloud.disconnect() },
       ],
     );
   };
 
   const signOut = () => {
     Alert.alert(
-      'Sign out',
-      'Signs out of your Duely account. Your data and PIN stay on this device — sign in again and it asks your same PIN. (Uninstalling the app is what clears the data.) Continue?',
+      t('profile.signOut'),
+      t('profile.signOutConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Sign out',
+          text: t('profile.signOut'),
           style: 'destructive',
           onPress: async () => {
             await setSignedOut(); // next launch → sign-in page (PIN + data kept)
@@ -221,9 +223,9 @@ export default function ProfileScreen() {
       await uploadDriveBackup();
       setDriveLinked(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      Alert.alert('Drive connected', 'Your data is now backed up to your Google Drive (Duely Backups folder).');
+      Alert.alert(t('profile.driveConnected'), t('profile.driveConnectedMessage'));
     } catch (e) {
-      Alert.alert('Drive connect failed', (e as Error).message);
+      Alert.alert(t('profile.driveConnectFailed'), t('common.error'));
     } finally {
       setDriveBusy(false);
     }
@@ -234,61 +236,61 @@ export default function ProfileScreen() {
     try {
       await uploadDriveBackup();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      Alert.alert('Backed up', 'Uploaded to your Google Drive.');
+      Alert.alert(t('profile.backupNow'), t('profile.driveBackupComplete'));
     } catch (e) {
-      Alert.alert('Backup failed', (e as Error).message);
+      Alert.alert(t('profile.backupFailed'), t('common.error'));
     } finally {
       setDriveBusy(false);
     }
   };
 
   const driveRestoreLatest = () => {
-    Alert.alert('Restore latest (Drive)', 'Pulls your most recent Drive backup onto this device, replacing whatever is here. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.restoreLatest'), t('profile.driveRestoreLatestConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Restore',
+        text: t('common.restore'),
         style: 'destructive',
-        onPress: () => runBusy('Restoring from Drive…', async () => {
+        onPress: () => runBusy(t('common.loading'), async () => {
           const res = await restoreLatestDrive();
           if (res.ok) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-            Alert.alert('Restored', 'Your latest Drive backup is back on this device.');
+            Alert.alert(t('profile.restored'), t('profile.latestDriveRestored'));
           } else {
-            Alert.alert('Nothing to restore', res.reason ?? 'Unknown error');
+            Alert.alert(t('profile.nothingToRestore'), t('common.error'));
           }
         }),
       },
     ]);
   };
 
-  const openDriveRestore = () => runBusy('Loading Drive backups…', async () => {
+  const openDriveRestore = () => runBusy(t('common.loading'), async () => {
     try {
       const list = await listDriveBackups();
       if (list.length === 0) {
-        Alert.alert('No Drive backups', 'No dated backup in your Drive yet.');
+        Alert.alert(t('profile.noDriveBackups'));
         return;
       }
       setDriveBackups(list);
       setDriveRestoreOpen(true);
     } catch (e) {
-      Alert.alert('Could not load', (e as Error).message);
+      Alert.alert(t('profile.couldNotLoad'), t('common.error'));
     }
   });
 
   const doDriveRestore = (b: { id: string; date: string }) => {
-    Alert.alert('Restore from Drive?', `Replaces ALL current data with the ${b.date} Drive backup. Cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.cloudRestore'), t('profile.restoreDriveConfirm').replace('{date}', b.date), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Restore',
+        text: t('common.restore'),
         style: 'destructive',
-        onPress: () => runBusy('Restoring from Drive…', async () => {
+        onPress: () => runBusy(t('common.loading'), async () => {
           const res = await restoreDriveBackup(b.id);
           setDriveRestoreOpen(false);
           if (res.ok) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-            Alert.alert('Restored', `Data restored from Drive (${b.date}).`);
+            Alert.alert(t('profile.restored'), t('profile.restoredDriveSummary').replace('{date}', b.date));
           } else {
-            Alert.alert('Restore failed', res.reason ?? 'Unknown error');
+            Alert.alert(t('profile.restoreFailed'), t('common.error'));
           }
         }),
       },
@@ -296,10 +298,10 @@ export default function ProfileScreen() {
   };
 
   const unlinkDrive = () => {
-    Alert.alert('Disconnect Drive', 'Stops Drive backups on this device. Files already in your Drive stay. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.disconnectDrive'), t('profile.disconnectDriveConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Disconnect',
+        text: t('profile.disconnect'),
         style: 'destructive',
         onPress: async () => {
           await disconnectDrive();
@@ -310,44 +312,44 @@ export default function ProfileScreen() {
   };
 
   const loadDemo = () => {
-    Alert.alert('Load demo data', 'Replaces all data with ~55 customers and 6 months of collections (stress test). Continue?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.loadDemo'), t('profile.demoConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Load',
-        onPress: () => runBusy('Generating demo data…', async () => {
+        text: t('common.load'),
+        onPress: () => runBusy(t('profile.working'), async () => {
           const res = await seedDemoData(55);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-          Alert.alert('Loaded', `${res.customers} customers, ${res.entries} entries. Now "Back up all 3" then test Clear + Restore.`);
+          Alert.alert(t('common.completed'), `${res.customers} ${t('profile.customers')}, ${res.entries} ${t('profile.entries')}`);
         }),
       },
     ]);
   };
 
-  const backupAll = () => runBusy('Backing up to 3 layers…', async () => {
+  const backupAll = () => runBusy(t('profile.working'), async () => {
     const results: string[] = [];
-    try { await createBackup(); results.push('Local ✓'); } catch { results.push('Local ✗'); }
-    try { await cloud.backupNow(); results.push('Firebase ✓'); } catch { results.push('Firebase ✗'); }
-    try { await uploadDriveBackup(); results.push('Drive ✓'); } catch (e) { results.push(`Drive ✗ (${(e as Error).message})`); }
+    try { await createBackup(); results.push(`${t('profile.onDevice')} ✓`); } catch { results.push(`${t('profile.onDevice')} ✗`); }
+    try { await cloud.backupNow(); results.push(`Firebase ✓`); } catch { results.push(`Firebase ✗`); }
+    try { await uploadDriveBackup(); results.push(`${t('profile.drive')} ✓`); } catch { results.push(`${t('profile.drive')} ✗`); }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    Alert.alert('Backed up to 3 layers', results.join('\n'));
+    Alert.alert(t('profile.backupAll'), results.join('\n'));
   });
 
   const clearDataDev = () => {
-    Alert.alert('Clear data (test)', 'Wipes local data to simulate loss. Restore from Local / Firebase / Drive afterwards.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.clearTestData'), t('profile.clearDataConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Clear',
+        text: t('common.clear'),
         style: 'destructive',
-        onPress: () => runBusy('Clearing…', async () => {
+        onPress: () => runBusy(t('profile.working'), async () => {
           await clearAll();
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-          Alert.alert('Cleared', 'Local data wiped. Now test restore from each backup.');
+          Alert.alert(t('common.completed'), t('profile.allDataCleared'));
         }),
       },
     ]);
   };
 
-  const name = ownerName || 'Owner';
+  const name = ownerName || t('auth.owner');
   const avatarColor = AVATAR_COLORS[hashName(name) % AVATAR_COLORS.length];
 
   const lock = () => {
@@ -355,25 +357,25 @@ export default function ProfileScreen() {
     setUnlocked(false);
   };
 
-  const backupNow = () => runBusy('Backing up…', async () => {
+  const backupNow = () => runBusy(t('profile.working'), async () => {
     try {
       const f = await createBackup();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      Alert.alert('Backup saved', `Saved on this device (${f.date}). Use "Export backup" to keep a copy off-device.`);
+      Alert.alert(t('profile.backupSaved'), t('profile.backupSavedMessage').replace('{date}', f.date));
     } catch (e) {
-      Alert.alert('Backup failed', (e as Error).message);
+      Alert.alert(t('profile.backupFailed'), t('common.error'));
     }
   });
 
-  const exportNow = () => runBusy('Preparing…', async () => {
+  const exportNow = () => runBusy(t('profile.working'), async () => {
     const res = await exportBackup();
-    if (!res.ok && res.reason) Alert.alert('Export failed', res.reason);
+    if (!res.ok) Alert.alert(t('profile.exportFailed'), t('common.error'));
   });
 
   const openRestore = async () => {
     const files = await listBackups();
     if (files.length === 0) {
-      Alert.alert('No backups', 'No backup found on this device yet. Tap "Back up now" first.');
+      Alert.alert(t('profile.noBackupsMessage'));
       return;
     }
     setBackups(files);
@@ -381,19 +383,19 @@ export default function ProfileScreen() {
   };
 
   const doRestore = (f: BackupFile) => {
-    Alert.alert('Restore this backup?', `Replaces ALL current data with the ${f.date} backup. This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.restore'), t('profile.restoreBackupConfirm').replace('{date}', f.date), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Restore',
+        text: t('common.restore'),
         style: 'destructive',
-        onPress: () => runBusy('Restoring…', async () => {
+        onPress: () => runBusy(t('profile.working'), async () => {
           const res = await restoreBackup(f.uri);
           setRestoreOpen(false);
           if (res.ok) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-            Alert.alert('Restored', `Data restored from ${f.date}.`);
+            Alert.alert(t('profile.restored'), t('profile.restoredDeviceSummary').replace('{date}', f.date));
           } else {
-            Alert.alert('Restore failed', res.reason ?? 'Unknown error');
+            Alert.alert(t('profile.restoreFailed'), t('common.error'));
           }
         }),
       },
@@ -401,26 +403,26 @@ export default function ProfileScreen() {
   };
 
   const clearData = () => {
-    Alert.alert('Clear all data', 'Deletes every customer and collection on this device. A backup is saved first so you can restore. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.clearData'), t('profile.clearDataConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete everything',
+        text: t('common.delete'),
         style: 'destructive',
-        onPress: () => runBusy('Clearing…', async () => {
+        onPress: () => runBusy(t('profile.working'), async () => {
           await createBackup().catch(() => {});
           await clearAll();
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-          Alert.alert('Cleared', 'All data deleted. A safety backup was saved before clearing.');
+          Alert.alert(t('common.completed'), t('profile.allDataCleared'));
         }),
       },
     ]);
   };
 
   const resetPin = () => {
-    Alert.alert('Reset PIN', 'You will set a new PIN on the next unlock. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.resetPin'), t('profile.resetPinConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Reset',
+        text: t('common.reset'),
         style: 'destructive',
         onPress: async () => {
           await clearPin();
@@ -441,7 +443,7 @@ export default function ProfileScreen() {
             <Text style={styles.avatarText}>{initialsOf(name)}</Text>
           </View>
           <Text style={styles.name}>{name}</Text>
-          <Text style={styles.tag}>Duely · Lending ledger</Text>
+          <Text style={styles.tag}>Duely · {t('profile.tagline')}</Text>
         </View>
 
         {/* Stat strip */}
@@ -470,16 +472,21 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Collection receipts always include English and Telugu. */}
+        {/* Collection receipt language */}
         <Text style={styles.sectionLabel}>{t('profile.msgLanguage').toUpperCase()}</Text>
         <View style={styles.group}>
-          <View style={styles.row}>
-            <View style={styles.rowIcon}>
-              <Feather name="message-circle" size={17} color={Colors.textPrimary} />
+          {LANGUAGES.map((l, i) => (
+            <View key={l.code}>
+              <Pressable style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]} onPress={() => setMsgLang(l.code)}>
+                <View style={styles.rowIcon}>
+                  <Feather name="message-circle" size={17} color={Colors.textPrimary} />
+                </View>
+                <Text style={styles.rowLabel}>{l.native}</Text>
+                {msgLang === l.code ? <Feather name="check" size={18} color={Colors.success} /> : null}
+              </Pressable>
+              {i < LANGUAGES.length - 1 ? <View style={styles.divider} /> : null}
             </View>
-            <Text style={styles.rowLabel}>తెలుగు + English</Text>
-            <Feather name="check" size={18} color={Colors.success} />
-          </View>
+          ))}
         </View>
         <Text style={styles.hint}>{t('profile.msgLanguageHint')}</Text>
 
@@ -527,9 +534,9 @@ export default function ProfileScreen() {
           </>
         ) : (
           <View style={styles.group}>
-            <Row icon="cloud" label={cloud.email ?? 'Cloud'} value={cloudStatusText(cloud.status, t)} />
+            <Row icon="cloud" label={cloud.email ?? t('profile.cloud')} value={cloudStatusText(cloud.status, t)} />
             <View style={styles.divider} />
-            <Row icon="refresh-cw" label={t('profile.syncNow')} onPress={() => runBusy('Syncing…', () => cloud.syncNow())} />
+            <Row icon="refresh-cw" label={t('profile.syncNow')} onPress={() => runBusy(t('profile.cloudSyncing'), () => cloud.syncNow())} />
             <View style={styles.divider} />
             <Row icon="download-cloud" label={t('profile.restoreLatest')} onPress={restoreLatest} />
             <View style={styles.divider} />
@@ -563,13 +570,13 @@ export default function ProfileScreen() {
 
         {__DEV__ ? (
           <>
-            <Text style={styles.sectionLabel}>DEVELOPER (TEST)</Text>
+            <Text style={styles.sectionLabel}>{t('profile.developerTest').toUpperCase()}</Text>
             <View style={styles.group}>
-              <Row icon="database" label="Load demo data (6 mo, 55)" onPress={loadDemo} />
+              <Row icon="database" label={t('profile.loadDemo')} onPress={loadDemo} />
               <View style={styles.divider} />
-              <Row icon="upload-cloud" label="Back up all 3 now" onPress={backupAll} />
+              <Row icon="upload-cloud" label={t('profile.backupAll')} onPress={backupAll} />
               <View style={styles.divider} />
-              <Row icon="trash-2" label="Clear data (test)" danger onPress={clearDataDev} />
+              <Row icon="trash-2" label={t('profile.clearTestData')} danger onPress={clearDataDev} />
             </View>
           </>
         ) : null}
@@ -596,7 +603,7 @@ export default function ProfileScreen() {
         <Pressable style={styles.backdrop} onPress={() => setRestoreOpen(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle}>{t('profile.restore')}</Text>
-            <Text style={styles.sheetSub}>{backups.length} {backups.length === 1 ? 'backup' : 'backups'} on this device</Text>
+            <Text style={styles.sheetSub}>{t('profile.backupCount').replace('{count}', String(backups.length))}</Text>
             <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {backups.map((f, i) => (
                 <View key={f.name}>
@@ -629,7 +636,7 @@ export default function ProfileScreen() {
               style={styles.input}
               value={cloudEmail}
               onChangeText={setCloudEmail}
-              placeholder="Duely email"
+              placeholder={t('profile.email')}
               placeholderTextColor={Colors.textTertiary}
               autoCapitalize="none"
               keyboardType="email-address"
@@ -638,7 +645,7 @@ export default function ProfileScreen() {
               style={styles.input}
               value={cloudPw}
               onChangeText={setCloudPw}
-              placeholder="Password (min 6 characters)"
+              placeholder={t('auth.password')}
               placeholderTextColor={Colors.textTertiary}
               secureTextEntry
               autoCapitalize="none"
@@ -649,7 +656,7 @@ export default function ProfileScreen() {
               onPress={connectCloud}
             >
               <Text style={styles.primaryBtnText}>
-                {cloud.status === 'connecting' ? 'Connecting…' : 'Connect'}
+                {cloud.status === 'connecting' ? t('profile.cloudConnecting') : t('profile.connectCloud')}
               </Text>
             </Pressable>
             <Pressable style={styles.sheetCancel} onPress={() => setCloudOpen(false)}>
@@ -664,7 +671,7 @@ export default function ProfileScreen() {
         <Pressable style={styles.backdrop} onPress={() => setCloudRestoreOpen(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle}>{t('profile.cloudRestore')}</Text>
-            <Text style={styles.sheetSub}>{cloudBackups.length} in cloud</Text>
+            <Text style={styles.sheetSub}>{t('profile.cloudBackupCount').replace('{count}', String(cloudBackups.length))}</Text>
             <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {cloudBackups.map((b, i) => (
                 <View key={b.date}>
@@ -691,7 +698,7 @@ export default function ProfileScreen() {
         <Pressable style={styles.backdrop} onPress={() => setDriveRestoreOpen(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle}>{t('profile.cloudRestore')}</Text>
-            <Text style={styles.sheetSub}>{driveBackups.length} in Drive</Text>
+            <Text style={styles.sheetSub}>{t('profile.driveBackupCount').replace('{count}', String(driveBackups.length))}</Text>
             <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {driveBackups.map((b, i) => (
                 <View key={b.id}>

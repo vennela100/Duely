@@ -25,8 +25,8 @@ import type { CollectionEntry } from '@/types';
 
 type PresetKey = 'today' | 'yesterday' | '1M' | '3M' | '6M' | '1Y';
 const PRESETS: { key: PresetKey; label: string; days: number }[] = [
-  { key: 'today', label: 'Today', days: 1 },
-  { key: 'yesterday', label: 'Yesterday', days: -1 },
+  { key: 'today', label: 'common.today', days: 1 },
+  { key: 'yesterday', label: 'common.yesterday', days: -1 },
   { key: '1M', label: '1M', days: 30 },
   { key: '3M', label: '3M', days: 90 },
   { key: '6M', label: '6M', days: 180 },
@@ -110,17 +110,17 @@ export default function ReportsScreen() {
 
   // ---- export ----
   const csvText = () => {
-    const head = 'Date,Type,Amount,Customer';
+    const head = `${t('reports.date')},${t('reports.type')},${t('reports.amount')},${t('reports.customer')}`;
     const rows = rangeEntries.map(
-      (e) => `${e.date},${(e.kind ?? 'received') === 'given' ? 'Given' : 'Received'},${e.amount},"${e.customerName.replace(/"/g, "'")}"`,
+      (e) => `${e.date},${(e.kind ?? 'received') === 'given' ? t('common.given') : t('common.received')},${e.amount},"${e.customerName.replace(/"/g, "'")}"`,
     );
-    return ['Duely Report', `${formatDisplay(from)} to ${formatDisplay(to)}`, `Collected,${analytics.receivedTotal}`, `Lent out,${analytics.givenTotal}`, '', head, ...rows].join('\n');
+    return [`Duely ${t('reports.report')}`, `${formatDisplay(from)} ${t('reports.to')} ${formatDisplay(to)}`, `${t('common.collected')},${analytics.receivedTotal}`, `${t('common.lentOut')},${analytics.givenTotal}`, '', head, ...rows].join('\n');
   };
   const htmlText = () => {
     const rows = rangeEntries
-      .map((e) => `<tr><td>${formatDisplay(e.date)}</td><td style="color:${(e.kind ?? 'received') === 'given' ? '#D71920' : '#067A3D'}">${(e.kind ?? 'received') === 'given' ? 'Given' : 'Received'}</td><td style="text-align:right">${formatINR(e.amount)}</td><td>${e.customerName}</td></tr>`)
+      .map((e) => `<tr><td>${formatDisplay(e.date)}</td><td style="color:${(e.kind ?? 'received') === 'given' ? '#D71920' : '#067A3D'}">${(e.kind ?? 'received') === 'given' ? t('common.given') : t('common.received')}</td><td style="text-align:right">${formatINR(e.amount)}</td><td>${e.customerName}</td></tr>`)
       .join('');
-    return `<html><head><meta name="viewport" content="width=device-width"/><style>body{font-family:-apple-system,Helvetica,Arial;padding:28px;color:#111}h1{font-size:24px;margin:0}.sub{color:#888;margin:4px 0 20px}.cards{display:flex;gap:12px;margin-bottom:20px}.card{flex:1;border:1px solid #ECECEC;border-radius:14px;padding:14px}.lbl{color:#888;font-size:12px}.val{font-size:20px;font-weight:800;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 6px;border-bottom:1px solid #EEE;text-align:left}th{color:#888}</style></head><body><h1>Duely Report</h1><div class="sub">${formatDisplay(from)} to ${formatDisplay(to)}</div><div class="cards"><div class="card"><div class="lbl">Collected</div><div class="val" style="color:#067A3D">${formatINR(analytics.receivedTotal)}</div></div><div class="card"><div class="lbl">Lent out</div><div class="val" style="color:#D71920">${formatINR(analytics.givenTotal)}</div></div><div class="card"><div class="lbl">Outstanding</div><div class="val">${formatINR(stats.outstandingTotal)}</div></div></div><table><tr><th>Date</th><th>Type</th><th style="text-align:right">Amount</th><th>Customer</th></tr>${rows}</table></body></html>`;
+    return `<html><head><meta name="viewport" content="width=device-width"/><style>body{font-family:-apple-system,Helvetica,Arial;padding:28px;color:#111}h1{font-size:24px;margin:0}.sub{color:#888;margin:4px 0 20px}.cards{display:flex;gap:12px;margin-bottom:20px}.card{flex:1;border:1px solid #ECECEC;border-radius:14px;padding:14px}.lbl{color:#888;font-size:12px}.val{font-size:20px;font-weight:800;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 6px;border-bottom:1px solid #EEE;text-align:left}th{color:#888}</style></head><body><h1>Duely ${t('reports.report')}</h1><div class="sub">${formatDisplay(from)} ${t('reports.to')} ${formatDisplay(to)}</div><div class="cards"><div class="card"><div class="lbl">${t('common.collected')}</div><div class="val" style="color:#067A3D">${formatINR(analytics.receivedTotal)}</div></div><div class="card"><div class="lbl">${t('common.lentOut')}</div><div class="val" style="color:#D71920">${formatINR(analytics.givenTotal)}</div></div><div class="card"><div class="lbl">${t('common.totalOutstanding')}</div><div class="val">${formatINR(stats.outstandingTotal)}</div></div></div><table><tr><th>${t('reports.date')}</th><th>${t('reports.type')}</th><th style="text-align:right">${t('reports.amount')}</th><th>${t('reports.customer')}</th></tr>${rows}</table></body></html>`;
   };
   const fileName = (ext: string) => `Duely_${from}_to_${to}.${ext}`;
 
@@ -129,14 +129,14 @@ export default function ReportsScreen() {
     try {
       if (kind === 'pdf') {
         const { uri } = await Print.printToFileAsync({ html: htmlText() });
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Report' });
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: t('reports.report') });
       } else {
         const uri = `${FileSystem.cacheDirectory}${fileName('csv')}`;
         await FileSystem.writeAsStringAsync(uri, csvText());
-        await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Report' });
+        await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: t('reports.report') });
       }
     } catch {
-      showToast('Share failed', 'error');
+      showToast(t('reports.shareFailed'), 'error');
     }
   };
 
@@ -155,9 +155,9 @@ export default function ReportsScreen() {
         const dest = await SAF.createFileAsync(perm.directoryUri, fileName('csv'), 'text/csv');
         await FileSystem.writeAsStringAsync(dest, csvText());
       }
-      showToast('Saved to device', 'success');
+      showToast(t('reports.savedToDevice'), 'success');
     } catch {
-      showToast('Download failed', 'error');
+      showToast(t('reports.downloadFailed'), 'error');
     }
   };
 
@@ -222,7 +222,7 @@ export default function ReportsScreen() {
           {PRESETS.map((p) => (
             <Pressable key={p.key} onPress={() => applyPreset(p)} style={[styles.preset, preset === p.key && styles.presetActive]}>
               <Text style={[styles.presetText, preset === p.key && styles.presetTextActive]}>
-                {p.key === 'today' ? t('common.today') : p.key === 'yesterday' ? t('common.yesterday') : p.label}
+                {p.key === 'today' || p.key === 'yesterday' ? t(p.label) : p.label}
               </Text>
             </Pressable>
           ))}
@@ -262,7 +262,7 @@ export default function ReportsScreen() {
         {rangeEntries.length === 0 ? (
           <Text style={styles.empty}>{t('reports.noTxns')}</Text>
         ) : (
-          rangeEntries.slice(0, 60).map((e, i) => <TxnRow key={e.id} e={e} last={i === Math.min(rangeEntries.length, 60) - 1} delay={i * 28} animate={i < 12} />)
+          rangeEntries.slice(0, 60).map((e, i) => <TxnRow key={e.id} e={e} last={i === Math.min(rangeEntries.length, 60) - 1} delay={i * 28} animate={i < 12} t={t} />)
         )}
 
         <View style={{ height: 120 }} />
@@ -312,7 +312,7 @@ export default function ReportsScreen() {
                   </View>
                 );
               })}
-              {sheetData.txns?.slice(0, 100).map((e, i) => <TxnRow key={e.id} e={e} last={i === Math.min(sheetData.txns?.length ?? 0, 100) - 1} delay={0} animate={false} />)}
+              {sheetData.txns?.slice(0, 100).map((e, i) => <TxnRow key={e.id} e={e} last={i === Math.min(sheetData.txns?.length ?? 0, 100) - 1} delay={0} animate={false} t={t} />)}
               {(sheet !== 'netcalc' && (sheetData.people?.length ?? 0) === 0 && (sheetData.txns?.length ?? 0) === 0) ? (
                 <Text style={styles.empty}>{t('reports.noTxns')}</Text>
               ) : null}
@@ -344,7 +344,7 @@ export default function ReportsScreen() {
       <Modal visible={picking !== null} transparent animationType="fade" onRequestClose={() => setPicking(null)}>
         <Pressable style={styles.calBackdrop} onPress={() => setPicking(null)}>
           <Pressable style={styles.calSheet} onPress={() => {}}>
-            <Text style={styles.calTitle}>{picking === 'from' ? 'From date' : 'To date'}</Text>
+            <Text style={styles.calTitle}>{picking === 'from' ? t('reports.from') : t('reports.to')}</Text>
             <Calendar
               value={picking === 'from' ? from : to}
               onSelect={(iso) => {
@@ -370,7 +370,7 @@ export default function ReportsScreen() {
   );
 }
 
-const TxnRow = React.memo(function TxnRow({ e, last, delay, animate }: { e: CollectionEntry; last: boolean; delay: number; animate: boolean }) {
+const TxnRow = React.memo(function TxnRow({ e, last, delay, animate, t }: { e: CollectionEntry; last: boolean; delay: number; animate: boolean; t: (key: string) => string }) {
   const given = (e.kind ?? 'received') === 'given';
   const inner = (
     <>
@@ -380,7 +380,7 @@ const TxnRow = React.memo(function TxnRow({ e, last, delay, animate }: { e: Coll
         </View>
         <View style={styles.txnMid}>
           <Text style={styles.txnName} numberOfLines={1}>{e.customerName}</Text>
-          <Text style={styles.txnDate}>{formatDisplay(e.date)} · {given ? 'Given' : 'Received'}</Text>
+          <Text style={styles.txnDate}>{formatDisplay(e.date)} · {given ? t('common.given') : t('common.received')}</Text>
         </View>
         <Text style={[styles.txnAmount, { color: given ? Colors.amountNegative : Colors.amountPositive }]}>{given ? '−' : '+'}{formatINR(e.amount)}</Text>
       </View>

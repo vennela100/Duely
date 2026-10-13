@@ -1,5 +1,4 @@
 import { formatINR } from '@/utils/format';
-import { formatDisplay } from '@/utils/date';
 import type { Lang } from '@/utils/i18n';
 import { isDirectSmsAvailable, sendDirectSms } from './directSms';
 
@@ -20,11 +19,12 @@ interface SMSParams {
   dayNumber: number;
   totalDays: number;
   date: string;
+  lang?: Lang;
   simSubscriptionId?: number | null;
 }
 
-// Receipt labels for the supported languages. Collection receipts include
-// English and Telugu together; values remain numeric in both languages.
+// Receipt labels for the supported languages. Hindi and Telugu receipts also
+// include English; the English option sends one concise English receipt.
 const SMS_LABELS: Record<Lang, {
   greeting: string;
   received: string;
@@ -39,25 +39,32 @@ const SMS_LABELS: Record<Lang, {
   te: { greeting: 'ప్రియ', received: 'చెల్లింపు అందింది', date: 'తేదీ', totalPaid: 'మొత్తం చెల్లించారు', of: '/', day: 'రోజు', remaining: 'మిగిలింది' },
 };
 
-export const buildCollectionMessage = (p: SMSParams): string => {
+export const buildCollectionMessage = (p: SMSParams, lang: Lang = p.lang ?? 'en'): string => {
   const remaining = Math.max(p.dealAmount - p.totalCollected, 0);
+  const labels = SMS_LABELS[lang];
+  const locale = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
+  const date = new Date(`${p.date}T00:00:00`).toLocaleDateString(locale, {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
+  const localized = [
+    `${labels.greeting} ${p.customerName},`,
+    `${labels.received}: ${formatINR(p.amountCollected)}`,
+    `${labels.date}: ${date}`,
+    `${labels.totalPaid}: ${formatINR(p.totalCollected)} ${labels.of} ${formatINR(p.dealAmount)}`,
+    `${labels.day}: ${p.dayNumber}/${p.totalDays}`,
+    `${labels.remaining}: ${formatINR(remaining)}`,
+  ].join('\n');
+  if (lang === 'en') return `${localized}\n\n- Duely`;
   const en = SMS_LABELS.en;
-  const te = SMS_LABELS.te;
-  return (
-    `ప్రియమైన ${p.customerName},\n` +
-    `${te.received}: ${formatINR(p.amountCollected)}\n` +
-    `${te.date}: ${formatDisplay(p.date)}\n` +
-    `ఇప్పటివరకు చెల్లించిన మొత్తం: ${formatINR(p.totalCollected)} / ${formatINR(p.dealAmount)}\n` +
-    `${te.day}: ${p.dayNumber}/${p.totalDays}\n` +
-    `మిగిలిన మొత్తం: ${formatINR(remaining)}\n\n` +
-    `${en.greeting} ${p.customerName},\n` +
-    `${en.received}: ${formatINR(p.amountCollected)}\n` +
-    `${en.date}: ${formatDisplay(p.date)}\n` +
-    `${en.totalPaid}: ${formatINR(p.totalCollected)} ${en.of} ${formatINR(p.dealAmount)}\n` +
-    `${en.day}: ${p.dayNumber}/${p.totalDays}\n` +
-    `${en.remaining}: ${formatINR(remaining)}\n` +
-    '- Duely'
-  );
+  const english = [
+    `${en.greeting} ${p.customerName},`,
+    `${en.received}: ${formatINR(p.amountCollected)}`,
+    `${en.date}: ${date}`,
+    `${en.totalPaid}: ${formatINR(p.totalCollected)} ${en.of} ${formatINR(p.dealAmount)}`,
+    `${en.day}: ${p.dayNumber}/${p.totalDays}`,
+    `${en.remaining}: ${formatINR(remaining)}`,
+  ].join('\n');
+  return `${localized}\n\n${english}\n\n- Duely`;
 };
 
 // Fast2SMS wants a bare 10-digit Indian number.
@@ -69,7 +76,7 @@ const toLocalNumber = (phone: string): string => {
 export const sendCollectionSMS = async (
   p: SMSParams,
 ): Promise<{ ok: boolean; reason?: string }> => {
-  const message = buildCollectionMessage(p);
+  const message = buildCollectionMessage(p, p.lang);
 
   // 1) Device SIM (Android dev build) — sends directly, no composer.
   if (isDirectSmsAvailable()) {

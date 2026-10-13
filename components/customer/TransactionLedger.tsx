@@ -11,6 +11,7 @@ import { useCustomer } from '@/hooks/useCustomer';
 import { formatINR } from '@/utils/format';
 import { useT } from '@/utils/i18n';
 import type { CollectionEntry, EntryKind } from '@/types';
+import { useUIStore } from '@/store/ui.store';
 
 export interface TransactionLedgerProps {
   customerId: string;
@@ -30,15 +31,15 @@ type Row =
   | { type: 'date'; key: string; label: string }
   | { type: 'bubble'; key: string; b: Bubble };
 
-const dateChip = (iso: string): string => {
+const dateChip = (iso: string, todayLabel: string, yesterdayLabel: string, locale: string): string => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   const now = new Date();
   const s = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const diff = Math.round((s(now) - s(d)) / 86400000);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Yesterday';
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (diff === 0) return todayLabel;
+  if (diff === 1) return yesterdayLabel;
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 const timeLabel = (iso: string): string => {
@@ -53,6 +54,8 @@ const timeLabel = (iso: string): string => {
 
 export function TransactionLedger({ customerId }: TransactionLedgerProps) {
   const t = useT();
+  const lang = useUIStore((s) => s.lang);
+  const locale = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
   const { entries, loading } = useCustomerHistory(customerId);
   const customer = useCustomer(customerId);
 
@@ -93,7 +96,7 @@ export function TransactionLedger({ customerId }: TransactionLedgerProps) {
     const out: Row[] = [];
     let lastDay = '';
     for (const b of bubbles) {
-      const label = dateChip(b.date);
+      const label = dateChip(b.date, t('common.today'), t('common.yesterday'), locale);
       if (label !== lastDay) {
         out.push({ type: 'date', key: `d-${b.id}`, label });
         lastDay = label;
@@ -101,7 +104,7 @@ export function TransactionLedger({ customerId }: TransactionLedgerProps) {
       out.push({ type: 'bubble', key: `b-${b.id}`, b });
     }
     return out;
-  }, [entries, customer]);
+  }, [entries, customer, t, locale]);
 
   if (loading) {
     return (

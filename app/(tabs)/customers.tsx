@@ -36,18 +36,18 @@ type Filter = 'all' | CustomerStatus;
 type SortKey = 'name' | 'amount' | 'endDate' | 'daysRemaining';
 
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'active', label: 'Active' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'defaulted', label: 'Defaulted' },
-  { key: 'paused', label: 'Paused' },
+  { key: 'all', label: 'customers.all' },
+  { key: 'active', label: 'common.active' },
+  { key: 'completed', label: 'common.completed' },
+  { key: 'defaulted', label: 'customers.defaulted' },
+  { key: 'paused', label: 'common.paused' },
 ];
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'name', label: 'Name' },
-  { key: 'amount', label: 'Amount' },
-  { key: 'endDate', label: 'End Date' },
-  { key: 'daysRemaining', label: 'Days Remaining' },
+  { key: 'name', label: 'customers.name' },
+  { key: 'amount', label: 'customers.amount' },
+  { key: 'endDate', label: 'customers.endDate' },
+  { key: 'daysRemaining', label: 'customers.daysRemaining' },
 ];
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -185,7 +185,7 @@ export default function CustomersScreen() {
               style={[styles.chip, active && styles.chipActive]}
             >
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
-                {f.label}
+                {t(f.label)}
               </Text>
             </Pressable>
           );
@@ -244,10 +244,10 @@ export default function CustomersScreen() {
           <View style={styles.emptyWrap}>
             <EmptyState
               emoji="👥"
-              title="No customers yet"
-              message="Add your first customer to get started"
+              title={t('customers.noCustomers')}
+              message={t('customers.firstCustomer')}
               cta={{
-                label: 'Add Customer',
+                label: t('customers.addCustomer'),
                 onPress: () => router.push('/customer/add'),
               }}
             />
@@ -263,7 +263,7 @@ export default function CustomersScreen() {
         onPressOut={onFabPressOut}
         style={[styles.fab, { bottom: fabBottom }, fabStyle]}
         accessibilityRole="button"
-        accessibilityLabel="Add customer"
+        accessibilityLabel={t('customers.addAccessibility')}
       >
         <Feather name="plus" size={26} color={Colors.textInverse} />
       </AnimatedPressable>
@@ -279,7 +279,7 @@ export default function CustomersScreen() {
           onPress={() => setSortOpen(false)}
         >
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Sort by</Text>
+            <Text style={styles.modalTitle}>{t('customers.sortBy')}</Text>
             {SORT_OPTIONS.map((o) => {
               const active = sortKey === o.key;
               return (
@@ -318,18 +318,18 @@ export default function CustomersScreen() {
           <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.modalTitle} numberOfLines={1}>{menuFor?.name}</Text>
             {menuFor?.status === 'paused' ? (
-              <MenuItem icon="play" label="Resume (Active)" onPress={() => menuSetStatus('active')} />
+              <MenuItem icon="play" label={t('customers.resume')} onPress={() => menuSetStatus('active')} />
             ) : (
-              <MenuItem icon="pause" label="Pause" onPress={() => menuSetStatus('paused')} />
+              <MenuItem icon="pause" label={t('customers.pause')} onPress={() => menuSetStatus('paused')} />
             )}
             {menuFor?.status === 'defaulted' ? (
-              <MenuItem icon="rotate-ccw" label="Clear Defaulted" onPress={() => menuSetStatus('active')} />
+              <MenuItem icon="rotate-ccw" label={t('customers.clearDefaulted')} onPress={() => menuSetStatus('active')} />
             ) : (
-              <MenuItem icon="alert-triangle" label="Mark Defaulted" danger onPress={() => menuSetStatus('defaulted')} />
+              <MenuItem icon="alert-triangle" label={t('customers.markDefaulted')} danger onPress={() => menuSetStatus('defaulted')} />
             )}
-            <MenuItem icon="edit-2" label="Edit details" onPress={() => { const id = menuFor?.id; setMenuFor(null); if (id) router.push(`/customer/edit/${id}`); }} />
+            <MenuItem icon="edit-2" label={t('customers.editDetails')} onPress={() => { const id = menuFor?.id; setMenuFor(null); if (id) router.push(`/customer/edit/${id}`); }} />
             <Pressable style={styles.menuCancel} onPress={() => setMenuFor(null)}>
-              <Text style={styles.menuCancelText}>Cancel</Text>
+              <Text style={styles.menuCancelText}>{t('common.cancel')}</Text>
             </Pressable>
           </Pressable>
         </Pressable>

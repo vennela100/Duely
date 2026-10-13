@@ -8,6 +8,8 @@ import { useCustomerHistory } from '@/hooks/useCollection';
 import { useCustomer } from '@/hooks/useCustomer';
 import { CollectionEntry } from './CollectionEntry';
 import type { CollectionEntry as CollectionEntryType } from '@/types';
+import { useT } from '@/utils/i18n';
+import { useUIStore } from '@/store/ui.store';
 
 export interface PaymentHistoryProps {
   customerId: string;
@@ -18,16 +20,19 @@ type Row =
   | { kind: 'header'; key: string; label: string }
   | { kind: 'entry'; key: string; entry: CollectionEntryType };
 
-const MONTH_LABEL = (iso: string): string => {
+const MONTH_LABEL = (iso: string, locale: string): string => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 };
 
 const MONTH_KEY = (iso: string): string => iso.slice(0, 7);
 
 export function PaymentHistory({ customerId, limit }: PaymentHistoryProps) {
   const { entries, loading } = useCustomerHistory(customerId);
+  const t = useT();
+  const lang = useUIStore((s) => s.lang);
+  const locale = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
   const customer = useCustomer(customerId);
   const totalDays = customer?.collectionDays ?? 0;
 
@@ -41,14 +46,14 @@ export function PaymentHistory({ customerId, limit }: PaymentHistoryProps) {
         out.push({
           kind: 'header',
           key: `h-${monthKey}`,
-          label: MONTH_LABEL(entry.date),
+          label: MONTH_LABEL(entry.date, locale),
         });
         lastMonth = monthKey;
       }
       out.push({ kind: 'entry', key: `e-${entry.id}`, entry });
     });
     return out;
-  }, [entries, limit]);
+  }, [entries, limit, locale]);
 
   if (loading) {
     return (
@@ -71,8 +76,8 @@ export function PaymentHistory({ customerId, limit }: PaymentHistoryProps) {
     return (
       <EmptyState
         emoji="🧾"
-        title="No history yet"
-        message="Collections will appear here once recorded."
+        title={t('history.emptyTitle')}
+        message={t('history.emptyMessage')}
       />
     );
   }
@@ -94,7 +99,7 @@ export function PaymentHistory({ customerId, limit }: PaymentHistoryProps) {
             <CollectionEntry entry={item.entry} />
             <View style={styles.dayPill}>
               <Text style={styles.dayPillText}>
-                Day {item.entry.dayNumber}
+                {t('common.day')} {item.entry.dayNumber}
                 {totalDays ? `/${totalDays}` : ''}
               </Text>
             </View>

@@ -24,7 +24,7 @@ export default function CustomerProfileScreen() {
   if (!customer) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <EmptyState emoji="🔍" title="Not found" message="" cta={{ label: 'Back', onPress: () => router.back() }} />
+        <EmptyState emoji="🔍" title={t('common.notFound')} message="" cta={{ label: t('common.back'), onPress: () => router.back() }} />
       </SafeAreaView>
     );
   }

@@ -89,16 +89,17 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
+  const t = useT();
   return (
     <Tabs
       initialRouteName="customers"
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
-      <Tabs.Screen name="customers" options={{ title: 'Customers' }} />
-      <Tabs.Screen name="collection" options={{ title: 'Collect' }} />
-      <Tabs.Screen name="index" options={{ title: 'Reports' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+      <Tabs.Screen name="customers" options={{ title: t('tab.customers') }} />
+      <Tabs.Screen name="collection" options={{ title: t('tab.collect') }} />
+      <Tabs.Screen name="index" options={{ title: t('tab.reports') }} />
+      <Tabs.Screen name="profile" options={{ title: t('tab.profile') }} />
     </Tabs>
   );
 }

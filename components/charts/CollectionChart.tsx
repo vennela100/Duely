@@ -14,10 +14,10 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import Svg, { Line, Rect } from 'react-native-svg';
-import { format, parseISO } from 'date-fns';
 import { Colors, Typography } from '@/constants/theme';
 import { today as todayISO } from '@/utils/date';
 import { formatINR } from '@/utils/format';
+import { useUIStore } from '@/store/ui.store';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
@@ -94,6 +94,8 @@ export function CollectionChart({
   highlightToday = false,
   onBarPress,
 }: CollectionChartProps) {
+  const lang = useUIStore((s) => s.lang);
+  const locale = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
@@ -215,7 +217,7 @@ export function CollectionChart({
                     ]}
                     numberOfLines={1}
                   >
-                    {format(parseISO(d.date), 'EEE d')}
+                    {new Date(`${d.date}T00:00:00`).toLocaleDateString(locale, { weekday: 'short', day: 'numeric' })}
                   </Text>
                 ) : null}
               </View>

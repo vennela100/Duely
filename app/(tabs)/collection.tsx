@@ -22,6 +22,7 @@ import { formatINR } from '@/utils/format';
 import { formatLong, today } from '@/utils/date';
 import { remainingAmount } from '@/utils/calc';
 import { useT } from '@/utils/i18n';
+import { useUIStore } from '@/store/ui.store';
 import { BrandBar } from '@/components/ui/BrandBar';
 import type { Customer } from '@/types';
 
@@ -62,6 +63,8 @@ function AllDone({ hasActive }: { hasActive: boolean }) {
 export default function CollectScreen() {
   const router = useRouter();
   const t = useT();
+  const lang = useUIStore((s) => s.lang);
+  const locale = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
   const { customers, loading } = useCustomers();
   const { entries, total, wasCollected } = useTodayCollection();
   const [tab, setTab] = useState<Tab>('pending');
@@ -73,11 +76,7 @@ export default function CollectScreen() {
   );
   const timeOf = (iso: string) => {
     const d = new Date(iso);
-    let h = d.getHours();
-    const m = d.getMinutes();
-    const ap = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    return `${h}:${m.toString().padStart(2, '0')} ${ap}`;
+    return d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
   };
 
   const active = useMemo(() => customers.filter((c) => c.status === 'active'), [customers]);

@@ -10,6 +10,7 @@ import { useCollectionStore } from '@/store/collection.store';
 import { useUIStore } from '@/store/ui.store';
 import { today } from '@/utils/date';
 import type { CollectionEntry, Customer, PaymentMethod } from '@/types';
+import type { Lang } from '@/utils/i18n';
 
 export const useTodayCollection = () => {
   const user = useUIStore((s) => s.user);
@@ -116,6 +117,7 @@ interface RecordArgs {
   sendSMS?: boolean;
   simSubscriptionId?: number | null;
   date?: string;
+  lang?: Lang;
 }
 
 interface RecordResult {
@@ -142,6 +144,7 @@ export const useRecordCollection = () => {
           dayNumber: projectedDay,
           totalDays: args.customer.collectionDays,
           date: args.date ?? today(),
+          lang: args.lang,
           simSubscriptionId: args.simSubscriptionId,
         });
       }

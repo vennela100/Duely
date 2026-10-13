@@ -28,9 +28,9 @@ export default function CustomerDetailScreen() {
       <SafeAreaView style={styles.safe}>
         <EmptyState
           emoji="🔍"
-          title="Customer not found"
-          message="This account may have been deleted."
-          cta={{ label: 'Go back', onPress: () => router.back() }}
+          title={t('common.customerNotFound')}
+          message={t('detail.mayBeDeleted')}
+          cta={{ label: t('common.back'), onPress: () => router.back() }}
         />
       </SafeAreaView>
     );
@@ -39,19 +39,19 @@ export default function CustomerDetailScreen() {
   const due = remainingAmount(customer);
 
   const confirmDelete = () => {
-    Alert.alert('Delete account', `Delete ${customer.name}? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('detail.deleteTitle'), t('detail.deleteConfirm').replace('{name}', customer.name), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           if (!user) return;
           try {
             await deleteCustomer(user.uid, customer.id);
-            showToast('Account deleted', 'success');
+            showToast(t('detail.deleted'), 'success');
             router.back();
           } catch (e) {
-            showToast(e instanceof Error ? e.message : 'Delete failed', 'error');
+            showToast(t('detail.deleteFailed'), 'error');
           }
         },
       },

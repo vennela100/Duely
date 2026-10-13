@@ -6,6 +6,12 @@ import {
   parseISO,
   startOfDay,
 } from 'date-fns';
+import { useUIStore } from '@/store/ui.store';
+
+const currentLocale = (): string => {
+  const lang = useUIStore.getState().lang;
+  return lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
+};
 
 export const today = (): string => format(startOfDay(new Date()), 'yyyy-MM-dd');
 
@@ -19,10 +25,10 @@ export const daysBetween = (a: string, b: string): number =>
   differenceInCalendarDays(parseISO(b), parseISO(a));
 
 export const formatDisplay = (iso: string): string =>
-  format(parseISO(iso), 'dd MMM yyyy');
+  parseISO(iso).toLocaleDateString(currentLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
 
 export const formatLong = (iso: string): string =>
-  format(parseISO(iso), 'EEEE, dd MMM yyyy');
+  parseISO(iso).toLocaleDateString(currentLocale(), { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
 
 export const isISOToday = (iso: string): boolean => isToday(parseISO(iso));
 

@@ -24,12 +24,13 @@ import { calcDailyAmount, calcEndDate, calcProfit } from '@/utils/calc';
 import { formatINR, normalizePhone } from '@/utils/format';
 import { formatDisplay } from '@/utils/date';
 import type { CustomerStatus } from '@/types';
+import { useT } from '@/utils/i18n';
 
 const STATUSES: { key: CustomerStatus; label: string }[] = [
-  { key: 'active', label: 'Active' },
-  { key: 'paused', label: 'Paused' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'defaulted', label: 'Defaulted' },
+  { key: 'active', label: 'common.active' },
+  { key: 'paused', label: 'common.paused' },
+  { key: 'completed', label: 'common.completed' },
+  { key: 'defaulted', label: 'customers.defaulted' },
 ];
 
 const toNumber = (s: string): number => {
@@ -44,6 +45,7 @@ export default function EditCustomerScreen() {
   const customer = useCustomer(id);
   const user = useUIStore((s) => s.user);
   const showToast = useUIStore((s) => s.showToast);
+  const t = useT();
 
   const [name, setName] = useState(customer?.name ?? '');
   const [phone, setPhone] = useState(customer?.phone ?? '');
@@ -67,21 +69,21 @@ export default function EditCustomerScreen() {
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
-    if (deal <= 0) e.deal = 'Required';
-    if (given <= 0) e.given = 'Required';
-    if (given > deal) e.given = 'Cannot exceed deal amount';
-    if (collectionDays <= 0) e.days = 'Required';
+    if (deal <= 0) e.deal = t('addCustomer.required');
+    if (given <= 0) e.given = t('addCustomer.required');
+    if (given > deal) e.given = t('addCustomer.cannotExceedDeal');
+    if (collectionDays <= 0) e.days = t('addCustomer.required');
     return e;
-  }, [deal, given, collectionDays]);
+  }, [deal, given, collectionDays, t]);
 
   if (!customer) {
     return (
       <View style={styles.flex}>
         <EmptyState
           emoji="🔍"
-          title="Customer not found"
-          message="This customer may have been deleted."
-          cta={{ label: 'Go back', onPress: () => router.back() }}
+          title={t('common.customerNotFound')}
+          message={t('customerEdit.mayBeDeleted')}
+          cta={{ label: t('common.back'), onPress: () => router.back() }}
         />
       </View>
     );
@@ -111,11 +113,10 @@ export default function EditCustomerScreen() {
         endDate,
         status,
       });
-      showToast('Customer updated', 'success');
+      showToast(t('customerEdit.updated'), 'success');
       router.back();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Update failed';
-      showToast(msg, 'error');
+      showToast(t('customerEdit.updateFailed'), 'error');
       setSubmitting(false);
     }
   };
@@ -134,16 +135,16 @@ export default function EditCustomerScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.field}>
-          <Input label="Full name" value={name} onChangeText={setName} autoCapitalize="words" />
+          <Input label={t('addCustomer.fullName')} value={name} onChangeText={setName} autoCapitalize="words" />
         </View>
         <View style={styles.field}>
-          <Input label="Phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          <Input label={t('addCustomer.phoneNumber')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         </View>
         <View style={styles.field}>
-          <Input label="Address (optional)" value={address} onChangeText={setAddress} />
+          <Input label={t('addCustomer.addressOptional')} value={address} onChangeText={setAddress} />
         </View>
 
-        <Text style={styles.sectionTitle}>Status</Text>
+        <Text style={styles.sectionTitle}>{t('customerEdit.status')}</Text>
         <View style={styles.statusRow}>
           {STATUSES.map((s) => {
             const active = status === s.key;
@@ -154,17 +155,17 @@ export default function EditCustomerScreen() {
                 style={[styles.statusChip, active && styles.statusChipActive]}
               >
                 <Text style={[styles.statusText, active && styles.statusTextActive]}>
-                  {s.label}
+                  {t(s.label)}
                 </Text>
               </Pressable>
             );
           })}
         </View>
 
-        <Text style={styles.sectionTitle}>Deal</Text>
+        <Text style={styles.sectionTitle}>{t('addCustomer.deal')}</Text>
         <View style={styles.field}>
           <Input
-            label="Deal amount"
+            label={t('customerEdit.dealAmount')}
             value={dealAmount}
             onChangeText={setDealAmount}
             keyboardType="numeric"
@@ -174,7 +175,7 @@ export default function EditCustomerScreen() {
         </View>
         <View style={styles.field}>
           <Input
-            label="Given amount"
+            label={t('customerEdit.givenAmount')}
             value={givenAmount}
             onChangeText={setGivenAmount}
             keyboardType="numeric"
@@ -184,7 +185,7 @@ export default function EditCustomerScreen() {
         </View>
         <View style={styles.field}>
           <Input
-            label="Collection days"
+            label={t('addCustomer.collectionDays')}
             value={days}
             onChangeText={setDays}
             keyboardType="numeric"
@@ -194,17 +195,17 @@ export default function EditCustomerScreen() {
 
         <Card style={styles.summary} padding="md">
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Daily collection</Text>
-            <Text style={styles.summaryValue}>{formatINR(dailyAmount)}/day</Text>
+            <Text style={styles.summaryLabel}>{t('addCustomer.dailyCollection')}</Text>
+            <Text style={styles.summaryValue}>{formatINR(dailyAmount)}{t('addCustomer.perDay')}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Profit</Text>
+            <Text style={styles.summaryLabel}>{t('overview.profit')}</Text>
             <Text style={[styles.summaryValue, { color: Colors.success }]}>
               {formatINR(profit)}
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>End date</Text>
+            <Text style={styles.summaryLabel}>{t('customerEdit.endDate')}</Text>
             <Text style={styles.summaryValue}>
               {collectionDays > 0
                 ? formatDisplay(calcEndDate(customer.startDate, collectionDays))
@@ -214,11 +215,11 @@ export default function EditCustomerScreen() {
         </Card>
 
         <View style={styles.field}>
-          <Input label="Notes (optional)" value={notes} onChangeText={setNotes} multiline />
+          <Input label={t('addCustomer.notesOptional')} value={notes} onChangeText={setNotes} multiline />
         </View>
 
         <Button
-          title="Save Changes"
+          title={t('customerEdit.save')}
           onPress={handleSubmit}
           fullWidth
           size="lg"

@@ -20,7 +20,7 @@ import { formatINR } from '@/utils/format';
 import { today, formatDisplay } from '@/utils/date';
 import { useT } from '@/utils/i18n';
 
-const dateLabel = (iso: string): string => (iso === today() ? 'Today' : formatDisplay(iso));
+const dateLabel = (iso: string, todayLabel: string): string => (iso === today() ? todayLabel : formatDisplay(iso));
 
 type Kind = 'received' | 'given';
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'];
@@ -57,7 +57,7 @@ export default function TxnScreen() {
   if (!customer) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.missing}>Customer not found</Text>
+        <Text style={styles.missing}>{t('common.customerNotFound')}</Text>
       </SafeAreaView>
     );
   }
@@ -93,14 +93,14 @@ export default function TxnScreen() {
           date,
         });
         if (result.smsResult?.ok === false) {
-          showToast('Collection saved, but SMS was not sent', 'error');
+          showToast(t('collection.smsSavedNotSent'), 'error');
         }
       } else {
         await recordGiven(user.uid, { customer, amount, date });
       }
       setSuccess(true); // overlay animates, then navigates back
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Failed', 'error');
+      showToast(t('collection.couldNotRecord'), 'error');
       setSubmitting(false);
     }
   };
@@ -136,7 +136,7 @@ export default function TxnScreen() {
       <View style={styles.dateWrap}>
         <Pressable style={styles.datePill} onPress={() => setCalOpen(true)}>
           <Feather name="calendar" size={15} color={Colors.textSecondary} />
-          <Text style={styles.dateText}>{dateLabel(date)}</Text>
+        <Text style={styles.dateText}>{dateLabel(date, t('common.today'))}</Text>
           <Feather name="chevron-down" size={15} color={Colors.textTertiary} />
         </Pressable>
       </View>
@@ -179,7 +179,7 @@ export default function TxnScreen() {
       <SuccessOverlay
         visible={success}
         amount={amount}
-        label={isReceived ? 'received' : 'given'}
+        label={isReceived ? t('common.received') : t('common.given')}
         color={accent}
         onDone={() => router.back()}
       />
