@@ -21,7 +21,7 @@ import { Colors, Glass, Radius, Spacing, Typography } from '@/constants/theme';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useDashboardStats } from '@/hooks/useAnalytics';
 import { useUIStore } from '@/store/ui.store';
-import { clearPin, setSignedOut } from '@/services/localAuth';
+import { clearPin, setOwnerName as persistOwnerName, setSignedOut } from '@/services/localAuth';
 import { createBackup, exportBackup, listBackups, restoreBackup } from '@/services/backup';
 import { clearAll } from '@/services/localdb';
 import { seedDemoData } from '@/services/seed';
@@ -69,6 +69,7 @@ function Row({
 
 export default function ProfileScreen() {
   const ownerName = useUIStore((s) => s.ownerName);
+  const setOwnerNameStore = useUIStore((s) => s.setOwnerName);
   const setUnlocked = useUIStore((s) => s.setUnlocked);
   const lang = useUIStore((s) => s.lang);
   const setLang = useUIStore((s) => s.setLang);
@@ -81,6 +82,8 @@ export default function ProfileScreen() {
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [backups, setBackups] = useState<BackupFile[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [ownerNameOpen, setOwnerNameOpen] = useState(false);
+  const [ownerNameDraft, setOwnerNameDraft] = useState('');
 
   // Wrap a heavy async action with a loading overlay so the UI never feels frozen.
   // Yields a frame first so the spinner paints before the blocking JSON work runs.
@@ -352,6 +355,27 @@ export default function ProfileScreen() {
   const name = ownerName || t('auth.owner');
   const avatarColor = AVATAR_COLORS[hashName(name) % AVATAR_COLORS.length];
 
+  const editOwnerName = () => {
+    setOwnerNameDraft(ownerName);
+    setOwnerNameOpen(true);
+  };
+
+  const saveOwnerName = async () => {
+    const nextName = ownerNameDraft.trim();
+    if (!nextName) {
+      Alert.alert(t('profile.ownerNameRequired'));
+      return;
+    }
+    try {
+      await persistOwnerName(nextName);
+      setOwnerNameStore(nextName);
+      setOwnerNameOpen(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch {
+      Alert.alert(t('common.error'));
+    }
+  };
+
   const lock = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setUnlocked(false);
@@ -442,7 +466,18 @@ export default function ProfileScreen() {
           <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
             <Text style={styles.avatarText}>{initialsOf(name)}</Text>
           </View>
-          <Text style={styles.name}>{name}</Text>
+          <View style={styles.identityNameRow}>
+            <Text style={styles.name} numberOfLines={1}>{name}</Text>
+            <Pressable
+              onPress={editOwnerName}
+              accessibilityRole="button"
+              accessibilityLabel={t('profile.editName')}
+              hitSlop={8}
+              style={styles.editNameButton}
+            >
+              <Feather name="edit-2" size={15} color={Colors.textSecondary} />
+            </Pressable>
+          </View>
           <Text style={styles.tag}>Duely · {t('profile.tagline')}</Text>
         </View>
 
@@ -596,6 +631,33 @@ export default function ProfileScreen() {
             <Text style={styles.busyText}>{busy}</Text>
           </View>
         </View>
+      </Modal>
+
+      {/* Owner name stays in the script and spelling the user enters. */}
+      <Modal visible={ownerNameOpen} transparent animationType="slide" onRequestClose={() => setOwnerNameOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setOwnerNameOpen(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.sheetTitle}>{t('profile.editName')}</Text>
+            <TextInput
+              style={styles.input}
+              value={ownerNameDraft}
+              onChangeText={setOwnerNameDraft}
+              placeholder={t('profile.ownerName')}
+              placeholderTextColor={Colors.textTertiary}
+              autoCapitalize="words"
+              autoCorrect={false}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={saveOwnerName}
+            />
+            <Pressable style={styles.primaryBtn} onPress={saveOwnerName}>
+              <Text style={styles.primaryBtnText}>{t('common.save')}</Text>
+            </Pressable>
+            <Pressable style={styles.sheetCancel} onPress={() => setOwnerNameOpen(false)}>
+              <Text style={styles.sheetCancelText}>{t('common.cancel')}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Restore picker — full date-wise history, newest first */}
@@ -754,9 +816,11 @@ const styles = StyleSheet.create({
   title: { fontFamily: Typography.display, fontSize: 32, color: Colors.textPrimary, letterSpacing: -0.8, marginTop: Spacing.sm },
 
   identity: { alignItems: 'center', marginTop: Spacing.xl },
+  identityNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', maxWidth: '100%' },
+  editNameButton: { marginTop: Spacing.md, marginLeft: Spacing.xs, padding: 6 },
   avatar: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: Typography.display, fontSize: 32, color: Colors.textInverse },
-  name: { fontFamily: Typography.display, fontSize: 22, color: Colors.textPrimary, marginTop: Spacing.md, letterSpacing: -0.5 },
+  name: { flexShrink: 1, maxWidth: '88%', textAlign: 'center', fontFamily: Typography.display, fontSize: 22, color: Colors.textPrimary, marginTop: Spacing.md, letterSpacing: -0.5 },
   tag: { fontFamily: Typography.body, fontSize: 13, color: Colors.textTertiary, marginTop: 4 },
 
   statStrip: {

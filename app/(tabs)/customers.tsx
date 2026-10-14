@@ -200,7 +200,7 @@ export default function CustomersScreen() {
           accessibilityRole="button"
         >
           <Text style={styles.sortValue}>
-            {SORT_OPTIONS.find((o) => o.key === sortKey)?.label}
+            {t(SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? 'customers.name')}
           </Text>
           <Feather name="chevron-down" size={14} color={Colors.textSecondary} />
         </Pressable>
@@ -297,7 +297,7 @@ export default function CustomersScreen() {
                       active && styles.modalRowLabelActive,
                     ]}
                   >
-                    {o.label}
+                    {t(o.label)}
                   </Text>
                   {active ? <Text style={styles.modalCheck}>✓</Text> : null}
                 </Pressable>
