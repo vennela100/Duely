@@ -1,47 +1,47 @@
 # Privacy Policy — Duely
 
-_Last updated: 15 June 2026_
+**Last updated: 17 October 2026**
 
-Duely ("the app") is a personal lending ledger for recording customers,
-loans, and daily collections. This policy explains how your data is handled.
+Duely (Android package `com.duely.app`, "the app") is a lending-ledger app for small lenders to record customers, loans, and daily repayments. This policy explains what data the app handles, where it is stored, and why it needs each permission.
 
-## Data stored only on your device
+## Who controls your data
+You, the lender using the app, control all data you enter. The developer does not access, sell, or share your data or your customers' information.
 
-All data you enter — customer names, phone numbers, loan amounts, repayment
-records, due dates, and notes — is stored **locally on your device** only.
-Duely does not run servers that receive your data, and does not transmit this
-information off your device.
+## What data the app handles
+- **Customer and loan records you enter:** names, phone numbers, optional address and photo, loan/deal amounts, repayment history, dates, and notes.
+- **Your profile:** your name and the email address you sign in with.
+- **App PIN:** the 4-digit PIN you create to unlock the app. It is kept only in the app's private storage on your phone and is never uploaded.
+- **Fingerprint / face unlock:** handled entirely by Android. The app only receives a "verified" or "not verified" result; it never sees or stores your fingerprint or face data.
 
-## Contacts
+## Where your data is stored
+1. **On your device:** the main copy, in the app's private storage. The app also keeps a daily backup copy on the device.
+2. **Cloud sync (when you sign in):** your records are synced to **Google Firebase (Cloud Firestore)**, with dated daily backups, in a private space tied to your account so you can recover them on a new phone. Sign-in uses **Firebase Authentication** (email and password). Security rules allow only you, signed in to your account, to read or write this data.
+3. **Google Drive (optional):** if you connect Google Drive, a backup copy is saved to a "Duely Backups" folder in **your own** Drive. The app uses the `drive.file` scope, so it can only see files it created, not your other Drive files.
 
-With your permission, Duely can read your device contacts so you can quickly
-add a customer's name and phone number. Contact data is used **only on the
-device** to fill in customer details. It is never uploaded, shared, or sold.
+## Permissions and why they are needed
+- **Contacts (read):** to let you pick a contact when adding a customer. Contacts are read on your device only; your contacts list is never uploaded. Only the details of customers you add are saved.
+- **Send SMS:** to send a payment receipt (in Telugu and English) from your SIM to a customer when you record a payment or clear a balance. The app does **not** read, collect, or store any SMS messages.
+- **Phone state:** only to list the SIM cards in your phone so you can choose which SIM sends receipts. The app does not read your phone number, call logs, or calls.
+- **Biometric (fingerprint / face):** to unlock the app and to confirm before a customer is deleted.
+- **Notifications:** to show collection reminders you set up.
+- **Internet:** for cloud sync and optional Google Drive backup.
+- **Vibrate:** for touch feedback.
 
-## SMS
+## What we do NOT do
+- We do **not** sell, rent, or share your data with third parties.
+- We do **not** read your SMS messages, call logs, or your full contacts list off the device.
+- We do **not** use advertising, analytics, or tracking services.
 
-Duely can send payment-reminder SMS messages to your customers. These are
-sent only when you choose to, using your device's SMS. Duely does **not**
-read, collect, or store your incoming or existing SMS messages.
+## Data retention and deletion
+- Data on your phone stays until you clear it (Profile → Clear all data) or uninstall the app.
+- Cloud and Drive data stays in your accounts until you delete it. You can disconnect cloud sync in the app, and delete Drive backups from your Google Drive at any time.
+- To delete your Duely cloud account and all of its cloud data, email us at the address below and we will delete it.
 
-## Data we do NOT collect
+## Children
+Duely is not intended for children under 13.
 
-- We do not collect, transmit, or store your data on any server.
-- We do not share or sell any data to third parties.
-- We use no advertising, analytics, or tracking services.
-
-## Your control
-
-Your data lives on your device. You can export a backup or permanently clear
-all data at any time from the app's Profile screen. Uninstalling the app
-removes all locally stored data.
-
-## Permissions used
-
-- **Contacts (read):** to add customers from your address book.
-- **Send SMS:** to send payment reminders you initiate.
-- **Vibrate:** for in-app haptic feedback.
+## Changes
+We may update this policy. The "Last updated" date above will change when we do.
 
 ## Contact
-
-Questions about this policy: vennelaalamur@gmail.com
+For privacy questions or deletion requests: **alamurvennela2007@gmail.com**
