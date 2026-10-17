@@ -15,6 +15,7 @@ import { useRecordCollection } from '@/hooks/useCollection';
 import { useSMSAvailability } from '@/hooks/useSMS';
 import { useUIStore } from '@/store/ui.store';
 import { recordGiven } from '@/services/collections.service';
+import { getPreferredSmsSubscriptionId } from '@/services/directSms';
 import { remainingAmount } from '@/utils/calc';
 import { formatINR } from '@/utils/format';
 import { today, formatDisplay } from '@/utils/date';
@@ -40,6 +41,7 @@ export default function TxnScreen() {
   const customer = useCustomer(params.id);
   const user = useUIStore((s) => s.user);
   const showToast = useUIStore((s) => s.showToast);
+  const msgLang = useUIStore((s) => s.msgLang);
   const recordCollection = useRecordCollection();
   const { available: smsAvailable } = useSMSAvailability();
   const t = useT();
@@ -85,12 +87,16 @@ export default function TxnScreen() {
     setSubmitting(true);
     try {
       if (isReceived) {
+        // Send from the SIM chosen at login, not the phone's default SMS SIM.
+        const simSubscriptionId = await getPreferredSmsSubscriptionId();
         const result = await recordCollection({
           customer,
           amount,
           method: 'cash',
           sendSMS: smsAvailable === true,
           date,
+          simSubscriptionId,
+          lang: msgLang,
         });
         if (result.smsResult?.ok === false) {
           showToast(t('collection.smsSavedNotSent'), 'error');

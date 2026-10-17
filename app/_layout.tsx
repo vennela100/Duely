@@ -34,6 +34,7 @@ import { useUIStore } from '@/store/ui.store';
 import { useCloudStore } from '@/store/cloud.store';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Toast } from '@/components/ui/Toast';
+import { AppLock } from '@/components/AppLock';
 import { useT } from '@/utils/i18n';
 
 // Auth is a device-local PIN (services/localAuth) — no Firebase / network / console.
@@ -128,6 +129,7 @@ export default function RootLayout() {
             <Stack.Screen name="customer/profile/[id]" options={{ headerShown: false }} />
           </Stack>
           <Toast />
+          <AppLock />
         </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>

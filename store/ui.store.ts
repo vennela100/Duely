@@ -38,7 +38,7 @@ export const useUIStore = create<UIState>()((set) => ({
   unlocked: false,
   ownerName: '',
   lang: 'en',
-  msgLang: 'en',
+  msgLang: 'te',
   toast: null,
   setUser: (user) => set({ user }),
   setAuthLoading: (authLoading) => set({ authLoading }),
@@ -58,8 +58,8 @@ export const useUIStore = create<UIState>()((set) => ({
       AsyncStorage.getItem(MSG_LANG_KEY),
     ]);
     if (v) set({ lang: v as Lang });
-    // Message language defaults to the app language until set explicitly.
-    set({ msgLang: (m as Lang | null) ?? (v as Lang | null) ?? 'en' });
+    // Receipts default to Telugu (which also includes English) until set explicitly.
+    set({ msgLang: (m as Lang | null) ?? 'te' });
   },
   showToast: (message, type = 'info') => set({ toast: { message, type } }),
   hideToast: () => set({ toast: null }),

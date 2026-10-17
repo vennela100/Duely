@@ -539,7 +539,7 @@ export default function ProfileScreen() {
         <View style={styles.group}>
           <Row icon="shield" label={t('profile.data')} value={t('profile.onDevice')} />
           <View style={styles.divider} />
-          <Row icon="info" label={t('profile.version')} value="1.0.0" />
+          <Row icon="info" label={t('profile.version')} value="1.0.2" />
         </View>
 
         {/* Data & backup — fully on-device, no cloud / Firebase */}

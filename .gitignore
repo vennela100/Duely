@@ -39,3 +39,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Built app packages and local run output
+*.apk
+*.aab
+.expo-run/

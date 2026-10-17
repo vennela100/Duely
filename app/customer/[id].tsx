@@ -1,4 +1,5 @@
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Linking, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -9,8 +10,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { TransactionLedger } from '@/components/customer/TransactionLedger';
 import { Colors, Radius, Spacing, Typography } from '@/constants/theme';
 import { useCustomer } from '@/hooks/useCustomer';
+import { useRecordCollection } from '@/hooks/useCollection';
+import { useSMSAvailability } from '@/hooks/useSMS';
 import { useUIStore } from '@/store/ui.store';
 import { deleteCustomer } from '@/services/customers.service';
+import { getPreferredSmsSubscriptionId } from '@/services/directSms';
+import { canUseBiometric, promptBiometric } from '@/services/biometric';
+import { verifyPin } from '@/services/localAuth';
 import { remainingAmount } from '@/utils/calc';
 import { formatINR } from '@/utils/format';
 import { useT } from '@/utils/i18n';
@@ -22,6 +28,17 @@ export default function CustomerDetailScreen() {
   const customer = useCustomer(id);
   const user = useUIStore((s) => s.user);
   const showToast = useUIStore((s) => s.showToast);
+  const msgLang = useUIStore((s) => s.msgLang);
+  const recordCollection = useRecordCollection();
+  const { available: smsAvailable } = useSMSAvailability();
+
+  // Delete box: shows the remaining balance, then Clear → fingerprint/PIN → Delete.
+  const [settleOpen, setSettleOpen] = useState(false);
+  const [askPin, setAskPin] = useState(false);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [settling, setSettling] = useState(false);
 
   if (!customer) {
     return (
@@ -38,24 +55,80 @@ export default function CustomerDetailScreen() {
 
   const due = remainingAmount(customer);
 
+  const removeAccount = async () => {
+    if (!user) return;
+    await deleteCustomer(user.uid, customer.id);
+    showToast(t('detail.deleted'), 'success');
+    router.back();
+  };
+
+  const markVerified = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setAskPin(false);
+    setPin('');
+    setPinError(false);
+    setVerified(true);
+  };
+
+  // Clear: confirm it's the owner (fingerprint, or the app PIN) before Delete is enabled.
+  const clearPressed = async () => {
+    if (verified) return;
+    setAskPin(true);
+    if (await canUseBiometric()) {
+      if (await promptBiometric()) markVerified();
+    }
+  };
+
+  const onPinChange = async (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 4);
+    setPin(digits);
+    setPinError(false);
+    if (digits.length < 4) return;
+    if (await verifyPin(digits)) {
+      markVerified();
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      setPin('');
+      setPinError(true);
+    }
+  };
+
+  // Delete: record any remaining balance as received (so it reaches ₹0 and
+  // totals/reports include it), then remove the account.
+  const settleAndDelete = async () => {
+    if (!verified || settling || !user) return;
+    setSettling(true);
+    try {
+      if (due > 0) {
+        await recordCollection({
+          customer,
+          amount: due,
+          method: 'cash',
+          sendSMS: smsAvailable === true,
+          simSubscriptionId: await getPreferredSmsSubscriptionId(),
+          lang: msgLang,
+        });
+      }
+      setSettleOpen(false);
+      await removeAccount();
+    } catch (e) {
+      showToast(t('detail.deleteFailed'), 'error');
+      setSettling(false);
+    }
+  };
+
+  const closeSettle = () => {
+    if (settling) return;
+    setSettleOpen(false);
+  };
+
   const confirmDelete = () => {
-    Alert.alert(t('detail.deleteTitle'), t('detail.deleteConfirm').replace('{name}', customer.name), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          if (!user) return;
-          try {
-            await deleteCustomer(user.uid, customer.id);
-            showToast(t('detail.deleted'), 'success');
-            router.back();
-          } catch (e) {
-            showToast(t('detail.deleteFailed'), 'error');
-          }
-        },
-      },
-    ]);
+    setAskPin(false);
+    setPin('');
+    setPinError(false);
+    setVerified(false);
+    setSettling(false);
+    setSettleOpen(true);
   };
 
   const go = (type: 'received' | 'given') => {
@@ -128,6 +201,80 @@ export default function CustomerDetailScreen() {
           </Pressable>
         </View>
       </View>
+
+      <Modal visible={settleOpen} transparent animationType="fade" onRequestClose={closeSettle}>
+        <KeyboardAvoidingView behavior="padding" style={styles.backdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>{t('detail.settleTitle').replace('{name}', customer.name)}</Text>
+            <Text style={styles.sheetHint}>{due > 0 ? t('detail.settleHint') : t('detail.settleNoDue')}</Text>
+
+            {/* Remaining balance, filled in automatically */}
+            <Text style={styles.sheetLabel}>{t('detail.settleRemaining')}</Text>
+            <TextInput
+              style={[styles.sheetInput, styles.sheetAmount]}
+              value={formatINR(due)}
+              editable={false}
+            />
+
+            {/* Step 1: Clear → fingerprint, or the app PIN */}
+            <Pressable
+              style={[styles.sheetClear, verified && styles.sheetClearDone]}
+              disabled={verified || settling}
+              onPress={clearPressed}
+            >
+              <Feather
+                name={verified ? 'check-circle' : 'shield'}
+                size={17}
+                color={verified ? Colors.amountPositive : Colors.textPrimary}
+              />
+              <Text style={[styles.sheetClearText, verified && { color: Colors.amountPositive }]}>
+                {verified ? t('detail.settleVerified') : t('detail.settleClear')}
+              </Text>
+            </Pressable>
+
+            {askPin && !verified ? (
+              <View>
+                <Text style={styles.sheetLabel}>{t('detail.settlePin')}</Text>
+                <View style={styles.pinRow}>
+                  <TextInput
+                    style={[styles.sheetInput, styles.pinInput, pinError && styles.sheetInputError]}
+                    value={pin}
+                    onChangeText={onPinChange}
+                    keyboardType="number-pad"
+                    secureTextEntry
+                    maxLength={4}
+                    placeholder="••••"
+                    placeholderTextColor={Colors.textTertiary}
+                  />
+                  <Pressable style={styles.bioBtn} onPress={clearPressed} hitSlop={8}>
+                    <Text style={styles.bioIcon}>☝</Text>
+                  </Pressable>
+                </View>
+                {pinError ? <Text style={styles.sheetError}>{t('detail.settleWrongPin')}</Text> : null}
+              </View>
+            ) : null}
+
+            {/* Step 2: Delete, enabled only after verification */}
+            <View style={styles.sheetActions}>
+              <Pressable
+                style={[styles.sheetBtn, styles.sheetCancel]}
+                disabled={settling}
+                onPress={closeSettle}
+              >
+                <Text style={styles.sheetCancelText}>{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.sheetBtn, styles.sheetConfirm, (!verified || settling) && styles.sheetDisabled]}
+                disabled={!verified || settling}
+                onPress={settleAndDelete}
+              >
+                <Feather name="trash-2" size={16} color={Colors.textInverse} />
+                <Text style={styles.sheetConfirmText}>{t('common.delete')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -186,4 +333,59 @@ const styles = StyleSheet.create({
   received: { backgroundColor: Colors.amountPositive },
   given: { backgroundColor: Colors.amountNegative },
   actText: { fontFamily: Typography.heading, fontSize: 16, color: Colors.textInverse },
+
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  sheet: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+  },
+  sheetTitle: { fontFamily: Typography.heading, fontSize: 18, color: Colors.textPrimary },
+  sheetHint: { fontFamily: Typography.body, fontSize: 14, color: Colors.textSecondary, marginTop: Spacing.sm, lineHeight: 20 },
+  sheetLabel: { fontFamily: Typography.bodyMedium, fontSize: 12, color: Colors.textSecondary, marginTop: Spacing.md },
+  sheetAmount: { fontFamily: Typography.display, fontSize: 22, color: Colors.amountNegative, marginTop: Spacing.xs },
+  // Full-width button on its own row (not flex: 1, which collapses its height here).
+  sheetClear: {
+    flexDirection: 'row',
+    gap: 8,
+    height: 48,
+    marginTop: Spacing.md,
+    borderRadius: Radius.full,
+    borderWidth: 1.5,
+    borderColor: Colors.textPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetClearDone: { borderColor: Colors.amountPositive },
+  sheetClearText: { fontFamily: Typography.heading, fontSize: 15, color: Colors.textPrimary },
+  pinRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  pinInput: { flex: 1, letterSpacing: 8, textAlign: 'center', marginTop: Spacing.xs },
+  bioBtn: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
+  bioIcon: { fontSize: 26, color: Colors.primary },
+  sheetDisabled: { opacity: 0.35 },
+  sheetInput: {
+    height: 52,
+    marginTop: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.md,
+    fontFamily: Typography.body,
+    fontSize: 18,
+    color: Colors.textPrimary,
+  },
+  sheetInputError: { borderColor: Colors.danger },
+  sheetError: { fontFamily: Typography.body, fontSize: 13, color: Colors.danger, marginTop: Spacing.xs },
+  sheetActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.lg },
+  sheetBtn: { flex: 1, height: 48, borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center' },
+  sheetCancel: { borderWidth: 1, borderColor: Colors.border },
+  sheetCancelText: { fontFamily: Typography.bodyMedium, fontSize: 15, color: Colors.textPrimary },
+  sheetConfirm: { flexDirection: 'row', gap: 6, backgroundColor: Colors.amountNegative },
+  sheetConfirmText: { fontFamily: Typography.heading, fontSize: 15, color: Colors.textInverse },
 });

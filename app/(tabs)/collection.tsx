@@ -106,8 +106,13 @@ export default function CollectScreen() {
             {extra > 0 ? `+${formatINR(extra)} ${t('collect.aboveTarget')}` : `${formatINR(expected)} ${t('collect.expected')}`}
           </Text>
         </Pressable>
-        <View style={styles.pctRing}>
-          <Text style={styles.pctText}>{rawPct}%</Text>
+        {/* Past 100% the number stops being useful (e.g. 15250%); the line above shows the extra. */}
+        <View style={[styles.pctRing, rawPct >= 100 && styles.pctRingDone]}>
+          {rawPct >= 100 ? (
+            <Feather name="check" size={26} color={Colors.textInverse} />
+          ) : (
+            <Text style={styles.pctText}>{rawPct}%</Text>
+          )}
         </View>
       </View>
       <View style={styles.track}>
@@ -249,6 +254,7 @@ const styles = StyleSheet.create({
   sumValue: { fontFamily: Typography.display, fontSize: 28, color: Colors.textPrimary, letterSpacing: -1, marginTop: 3 },
   sumMeta: { fontFamily: Typography.body, fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
   pctRing: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  pctRingDone: { backgroundColor: Colors.success },
   pctText: { fontFamily: Typography.heading, fontSize: 15, color: Colors.textInverse },
   track: { height: 5, backgroundColor: Colors.surfaceElevated, borderRadius: 3, marginTop: Spacing.sm, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 3 },

@@ -39,7 +39,9 @@ const SMS_LABELS: Record<Lang, {
   te: { greeting: 'ప్రియ', received: 'చెల్లింపు అందింది', date: 'తేదీ', totalPaid: 'మొత్తం చెల్లించారు', of: '/', day: 'రోజు', remaining: 'మిగిలింది' },
 };
 
-export const buildCollectionMessage = (p: SMSParams, lang: Lang = p.lang ?? 'en'): string => {
+export const buildCollectionMessage = (p: SMSParams, requested: Lang = p.lang ?? 'te'): string => {
+  // Receipts are always bilingual: English alone becomes Telugu + English.
+  const lang: Lang = requested === 'en' ? 'te' : requested;
   const remaining = Math.max(p.dealAmount - p.totalCollected, 0);
   const labels = SMS_LABELS[lang];
   const locale = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
@@ -54,12 +56,14 @@ export const buildCollectionMessage = (p: SMSParams, lang: Lang = p.lang ?? 'en'
     `${labels.day}: ${p.dayNumber}/${p.totalDays}`,
     `${labels.remaining}: ${formatINR(remaining)}`,
   ].join('\n');
-  if (lang === 'en') return `${localized}\n\n- Duely`;
   const en = SMS_LABELS.en;
+  const enDate = new Date(`${p.date}T00:00:00`).toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
   const english = [
     `${en.greeting} ${p.customerName},`,
     `${en.received}: ${formatINR(p.amountCollected)}`,
-    `${en.date}: ${date}`,
+    `${en.date}: ${enDate}`,
     `${en.totalPaid}: ${formatINR(p.totalCollected)} ${en.of} ${formatINR(p.dealAmount)}`,
     `${en.day}: ${p.dayNumber}/${p.totalDays}`,
     `${en.remaining}: ${formatINR(remaining)}`,
